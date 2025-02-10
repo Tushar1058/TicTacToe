@@ -16,6 +16,10 @@ io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
     socket.on('findGame', () => {
+        // Check if player is already in queue
+        const existingPlayer = playerQueue.find(player => player.id === socket.id);
+        if (existingPlayer) return;
+        
         console.log('Player searching for game:', socket.id);
         playerQueue.push({
             id: socket.id,
