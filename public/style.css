@@ -25,6 +25,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    padding-top: 72px; /* Match new header height */
 }
 
 .container {
@@ -32,6 +33,11 @@ body {
     margin: 0 auto;
     text-align: center;
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 72px); /* Full height minus header */
 }
 
 h1 {
@@ -121,9 +127,6 @@ h1 {
     position: relative;
     z-index: 2;
     margin: 5px;
-    -webkit-tap-highlight-color: transparent;
-    outline: none;
-    user-select: none;
 }
 
 .symbol {
@@ -161,9 +164,6 @@ h1 {
     letter-spacing: 1px;
     position: relative;
     overflow: hidden;
-    -webkit-tap-highlight-color: transparent;
-    outline: none;
-    user-select: none;
 }
 
 .glow-button:hover {
@@ -238,9 +238,6 @@ h1 {
     margin: 20px auto;
     cursor: pointer;
     display: block;
-    -webkit-tap-highlight-color: transparent;
-    outline: none;
-    user-select: none;
 }
 
 #status {
@@ -261,9 +258,6 @@ h1 {
     display: block;
     margin-left: auto;
     margin-right: auto;
-    -webkit-tap-highlight-color: transparent;
-    outline: none;
-    user-select: none;
 }
 
 #okButton:hover {
@@ -285,16 +279,173 @@ h1 {
     background: rgba(0, 255, 136, 0.1);
 }
 
+/* Base live count styles (for PC/desktop) */
 .live-player-count {
     position: fixed;
-    top: 20px;
-    left: 20px;
-    background: rgba(0, 255, 136, 0.1);
-    padding: 8px 15px;
+    top: 85px; /* Slightly reduced from 100px */
+    left: 20px; /* Slightly reduced from 25px */
+    padding: 8px 16px; /* Slightly reduced from 10px 20px */
     border-radius: 15px;
     color: var(--primary);
-    font-size: 1em;
+    font-size: 1em; /* Reduced from 1.1em */
     border: 1px solid var(--primary);
+    z-index: 999;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.wallet-info {
+    display: flex;
+    align-items: center;
+    background: var(--background);
+    border: 2px solid var(--primary);
+    border-radius: 6px;
+    padding: 3px;
+    gap: 6px;
+    height: 45px;
+}
+
+.wallet-display {
+    color: var(--text);
+    padding: 4px 10px;
+    font-weight: 600;
+    font-size: 0.85em;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: none;
+}
+
+.wallet-btn {
+    background: #2d2d2d;
+    border: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text);
+    transition: all 0.3s ease;
+    font-size: 1em;
+}
+
+.wallet-btn:hover {
+    background: var(--primary);
+    color: var(--background);
+}
+
+.wallet-menu {
+    display: none;
+    position: absolute;
+    top: 60px;
+    right: 0;
+    background: var(--modal-bg);
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    min-width: 150px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+}
+
+.wallet-menu.active {
+    display: block;
+}
+
+.wallet-action {
+    width: 100%;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.wallet-action:hover {
+    background: var(--primary);
+    color: var(--background);
+}
+
+.left-section {
+    flex: 1; /* Take up equal space as right section */
+    min-width: 200px; /* Minimum width to maintain layout */
+    display: flex;
+    justify-content: flex-start;
+}
+
+.center-section {
+    flex: 2; /* Take up more space in the middle */
+    display: flex;
+    justify-content: center;
+    position: absolute; /* Position it absolutely */
+    left: 50%; /* Center it */
+    transform: translateX(-50%); /* Offset by half its width */
+    pointer-events: none; /* Allow clicks to pass through the section */
+}
+
+.wallet-container {
+    pointer-events: auto; /* Re-enable clicks for the wallet */
+}
+
+.right-section {
+    flex: 1; /* Take up equal space as left section */
+    min-width: 200px; /* Minimum width to maintain layout */
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.user-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 200px; /* Limit the width */
+}
+
+.username-display {
+    color: #00ff88;
+    font-weight: 600;
+    font-size: 0.95em;
+    white-space: nowrap; /* Prevent username from wrapping */
+    overflow: hidden; /* Hide overflow */
+    text-overflow: ellipsis; /* Add ellipsis for long usernames */
+    max-width: 150px; /* Maximum width for username */
+}
+
+.profile-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.login-button {
+    color: #00ff88;
+    padding: 10px 15px;
+    border: 2px solid var(--primary);
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background 0.3s, box-shadow 0.3s;
+}
+
+.login-button:hover {
+    color: var(--background);
+    background-color: var(--primary);
+    box-shadow: 0 0 10px #00ff88, 0 0 20px #00ff88;
 }
 
 /* Base styles remain the same, adding responsive styles */
@@ -302,6 +453,7 @@ h1 {
     .container {
         padding: 10px;
         width: 100%;
+        min-height: calc(100vh - 64px);
     }
 
     h1 {
@@ -324,10 +476,25 @@ h1 {
     }
 
     .live-player-count {
-        top: 10px;
-        left: 10px;
+        top: 85px;
+        left: 15px;
         font-size: 1em;
-        padding: 8px 15px;
+        padding: 8px 16px;
+    }
+
+    .wallet-info {
+        height: 45px;
+    }
+
+    .wallet-display {
+        padding: 3px 8px;
+        font-size: 0.8em;
+    }
+
+    .wallet-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9em;
     }
 
     #findGame {
@@ -365,10 +532,65 @@ h1 {
         margin-top: 25px;
     }
 
-    .cell, button, #findGame, #okButton, .glow-button {
-        -webkit-tap-highlight-color: transparent;
-        outline: none;
-        user-select: none;
+    .site-header {
+        height: 64px;
+        min-height: 64px;
+        padding: 0 12px;
+    }
+
+    body {
+        padding-top: 64px;
+    }
+
+    .wallet-display {
+        padding: 6px 12px;
+        font-size: 0.9em;
+    }
+
+    .wallet-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 0.9em;
+    }
+
+    .wallet-menu {
+        right: -50%;
+        transform: translateX(50%);
+    }
+
+    .left-section {
+        min-width: 120px; /* Reduced from 200px */
+    }
+
+    .right-section {
+        min-width: 120px; /* Reduced from 200px */
+    }
+
+    .logo-text {
+        font-size: 1.2em;
+    }
+
+    .user-section {
+        max-width: 150px; /* Reduced from 200px */
+        gap: 8px;
+    }
+
+    .username-display {
+        font-size: 0.9em;
+        max-width: 100px; /* Reduced from 150px */
+    }
+
+    .user-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 0.9em;
+    }
+
+    .live-player-count {
+        top: 85px;
+        left: 15px;
+        font-size: 1em;
+        padding: 8px 16px;
     }
 }
 
@@ -407,10 +629,137 @@ h1 {
         display: block;
     }
 
-    .cell, button, #findGame, #okButton, .glow-button {
-        -webkit-tap-highlight-color: transparent;
-        outline: none;
-        user-select: none;
+    .site-header {
+        padding: 0 8px;
+    }
+
+    .wallet-display {
+        padding: 4px 8px;
+        font-size: 0.8em;
+    }
+
+    .wallet-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 1em;
+    }
+
+    .live-player-count {
+        top: 80px;
+        left: 12px;
+        font-size: 0.95em;
+        padding: 7px 14px;
+    }
+
+    .left-section {
+        min-width: 100px;
+    }
+
+    .right-section {
+        min-width: 100px;
+    }
+
+    .logo-text {
+        font-size: 1.1em;
+    }
+
+    .wallet-display {
+        padding: 4px 8px;
+        font-size: 0.8em;
+    }
+
+    .wallet-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.8em;
+    }
+
+    .user-section {
+        max-width: 120px;
+        gap: 6px;
+    }
+
+    .username-display {
+        font-size: 0.8em;
+        max-width: 80px;
+    }
+
+    .user-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.8em;
+    }
+
+    .live-player-count {
+        top: 80px;
+        left: 12px;
+        font-size: 0.95em;
+        padding: 7px 14px;
+    }
+
+    .wallet-menu, .user-menu {
+        min-width: 120px;
+        right: -10px;
+    }
+
+    .wallet-action, .user-action {
+        padding: 8px 12px;
+        font-size: 0.9em;
+    }
+}
+
+/* Add very small screen adjustments */
+@media screen and (max-width: 360px) {
+    .logo-text {
+        display: none; /* Hide logo text on very small screens */
+    }
+
+    .left-section {
+        min-width: 80px;
+    }
+
+    .right-section {
+        min-width: 80px;
+    }
+
+    .user-section {
+        max-width: 100px;
+    }
+
+    .username-display {
+        max-width: 60px;
+    }
+
+    .wallet-display {
+        padding: 3px 6px;
+        font-size: 0.75em;
+    }
+
+    .live-player-count {
+        top: 75px;
+        left: 8px;
+        font-size: 0.9em;
+        padding: 6px 12px;
+    }
+}
+
+/* Add landscape orientation fixes */
+@media screen and (max-height: 480px) and (orientation: landscape) {
+    .site-header {
+        height: 50px;
+        min-height: 50px;
+    }
+
+    body {
+        padding-top: 50px;
+    }
+
+    .live-player-count {
+        top: 65px;
+    }
+
+    .wallet-menu, .user-menu {
+        top: 45px;
     }
 }
 
@@ -427,4 +776,84 @@ h1 {
     .board {
         margin: 10px auto;
     }
+}
+
+.site-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 72px; /* Increased from 64px */
+    min-height: 72px;
+    background: linear-gradient(135deg, rgba(30, 30, 30, 0.6), rgba(30, 30, 30, 0.3));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 1000;
+    box-sizing: border-box;
+}
+
+.user-container {
+    position: relative;
+}
+
+.user-btn {
+    background: transparent;
+    border: 2px solid var(--primary);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--primary);
+    transition: all 0.3s ease;
+    font-size: 1.1em;
+}
+
+.user-btn:hover {
+    background: var(--primary);
+    color: var(--background);
+    box-shadow: 0 0 10px var(--primary);
+}
+
+.user-menu {
+    display: none;
+    position: absolute;
+    top: 50px;
+    right: 0;
+    background: var(--modal-bg);
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    min-width: 150px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+}
+
+.user-menu.active {
+    display: block;
+}
+
+.user-action {
+    width: 100%;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.user-action:hover {
+    background: var(--primary);
+    color: var(--background);
 }
