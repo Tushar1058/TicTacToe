@@ -15,16 +15,29 @@ const gameOverMessage = document.getElementById('gameOverMessage');
 const okButton = document.getElementById('okButton');
 const livePlayerCount = document.getElementById('livePlayerCount');
 
+let isProcessingClick = false;  // Add this at the top with other state variables
+
 // Initially hide the board
 board.style.display = 'none';
 
 findGameBtn.addEventListener('click', () => {
+    if (isProcessingClick) return;  // Prevent rapid clicking
+    isProcessingClick = true;
+    
+    setTimeout(() => {
+        isProcessingClick = false;
+    }, 200);  // Reduced from 500ms to 200ms
+
     if (findGameBtn.classList.contains('cancel')) {
         socket.emit('cancelSearch');
         findGameBtn.textContent = 'Find Game';
         findGameBtn.classList.remove('cancel');
-        findGameBtn.disabled = false;
+        findGameBtn.disabled = true;
         status.textContent = 'Search cancelled';
+        
+        setTimeout(() => {
+            findGameBtn.disabled = false;
+        }, 300);  // Reduced from 1000ms to 300ms
     } else {
         findGameBtn.textContent = 'Cancel';
         findGameBtn.classList.add('cancel');
