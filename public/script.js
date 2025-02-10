@@ -263,47 +263,252 @@ okButton.addEventListener('click', () => {
     status.textContent = 'Waiting for players...';
 });
 
-document.addEventListener("DOMContentLoaded", function () {
+// Move these outside DOMContentLoaded to make them globally accessible
+let currentWalletAmount = 0;
+let walletPopup = null;
+function makeDraggable(element) {
+    let offsetX = 0, offsetY = 0, startX = 0, startY = 0;
+    const header = element.querySelector('.wallet-header');
+
+    if (!header) return;
+
+    header.addEventListener('mousedown', dragMouseDown);
+    let isDragging = false;
+
+    function dragMouseDown(e) {
+        if (window.innerWidth <= 768) return; // Disable on mobile
+        if (e.target.classList.contains('close-btn')) return; // Don't drag if clicking close button
+        
+        e.preventDefault();
+        isDragging = true;
+
+        startX = e.clientX;
+        startY = e.clientY;
+
+        // Get computed transform values
+        const style = window.getComputedStyle(element);
+        const matrix = new DOMMatrix(style.transform);
+
+        offsetX = matrix.m41 || 0;
+        offsetY = matrix.m42 || 0;
+
+        element.classList.add('dragging');
+
+        document.addEventListener('mousemove', elementDrag);
+        document.addEventListener('mouseup', closeDragElement);
+    }
+
+    function elementDrag(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+
+        let newX = offsetX + (e.clientX - startX);
+        let newY = offsetY + (e.clientY - startY);
+
+        // Get screen dimensions
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+
+        // Get element dimensions
+        const rect = element.getBoundingClientRect();
+        const elementWidth = rect.width;
+        const elementHeight = rect.height;
+
+        // Adjust boundaries - much more to left, much less to right
+        const minX = -elementWidth * 1.5;  // Allow 1.5x width beyond left
+        const maxX = screenWidth - elementWidth * 1.95;  // Keep only half width visible on right
+        const minY = 0;  // Keep top within screen
+        const maxY = screenHeight - elementHeight;  // Keep bottom within screen
+
+        // Keep menu within adjusted bounds
+        newX = Math.max(minX, Math.min(newX, maxX));
+        newY = Math.max(minY, Math.min(newY, maxY));
+
+        requestAnimationFrame(() => {
+            element.style.transform = `translate(${newX}px, ${newY}px)`;
+        });
+    }
+
+    function closeDragElement() {
+        isDragging = false;
+        element.classList.remove('dragging');
+        document.removeEventListener('mousemove', elementDrag);
+        document.removeEventListener('mouseup', closeDragElement);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
     const walletBtn = document.querySelector(".wallet-btn");
-    const walletPopup = document.getElementById("walletPopup");
+    const walletMenu = document.getElementById("walletPopup");
+    const closeBtn = walletMenu.querySelector(".close-btn");
 
-    // Function to toggle the wallet popup
-    function toggleWalletPopup() {
-        walletPopup.classList.toggle("active");
+    if (walletBtn && walletMenu) {
+        makeDraggable(walletMenu);
+
+        walletBtn.addEventListener("click", function(e) {
+            e.stopPropagation();
+            if (!walletMenu.classList.contains("active")) {
+                walletMenu.classList.add("active");
+                walletMenu.style.display = 'block';
+                walletMenu.style.transform = '';
+                walletMenu.style.left = '';
+                walletMenu.style.top = '';
+                walletMenu.style.right = '0';
+            }
+        });
+
+        closeBtn.addEventListener("click", function() {
+            walletMenu.classList.remove("active");
+            walletMenu.style.display = 'none';
+        });
+
+        // Add deposit handler
+        document.getElementById("deposit").addEventListener("click", function() {
+            const token = sessionStorage.getItem('token');
+            if (!token) {
+                showWalletNotification('Please log in to update wallet');
+                return;
+            }
+
+            const amount = parseInt(document.getElementById('walletInputAmount').value);
+
+            if (!amount || isNaN(amount) || amount < 100) {
+                showWalletNotification('Please enter an amount of at least ₹100');
+                return;
+            }
+
+            if (amount > 10000) {
+                showWalletNotification('Maximum deposit amount is ₹10,000');
+                return;
+            }
+
+            if (amount > 10000) {
+                showWalletNotification('This deposit would exceed the maximum wallet limit (₹10,000)');
+                return;
+            }
+
+            const newAmount = currentWalletAmount + amount;
+            
+            fetch('/update-wallet', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ amount: newAmount })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentWalletAmount = data.amount;
+                    updateWalletDisplay(data.amount);
+                    document.getElementById('walletInputAmount').value = '';
+                    showWalletNotification(`₹${amount} deposited successfully!`, 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showWalletNotification('Failed to update wallet');
+            });
+        });
+
+        // Add withdraw handler
+        document.getElementById("withdraw").addEventListener("click", function() {
+            const token = sessionStorage.getItem('token');
+            if (!token) {
+                showWalletNotification('Please log in to update wallet');
+                return;
+            }
+
+            const amount = parseInt(document.getElementById('walletInputAmount').value);
+
+            if (!amount || isNaN(amount) || amount < 100) {
+                showWalletNotification('Please enter an amount of at least ₹100');
+                return;
+            }
+
+            if (amount > currentWalletAmount) {
+                showWalletNotification(`Insufficient balance (Current balance: ₹${currentWalletAmount})`);
+                return;
+            }
+
+            const newAmount = currentWalletAmount - amount;
+            
+            fetch('/update-wallet', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ amount: newAmount })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentWalletAmount = data.amount;
+                    updateWalletDisplay(data.amount);
+                    document.getElementById('walletInputAmount').value = '';
+                    showWalletNotification(`₹${amount} withdrawn successfully!`, 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showWalletNotification('Failed to update wallet');
+            });
+        });
     }
-
-    // Close the wallet popup when clicking outside
-    function closeWalletPopup(event) {
-        if (!walletPopup.contains(event.target) && !walletBtn.contains(event.target)) {
-            walletPopup.classList.remove("active");
-        }
-    }
-
-    // Attach event listeners
-    walletBtn.addEventListener("click", function (event) {
-        event.stopPropagation(); // Prevents triggering the close event immediately
-        toggleWalletPopup();
-    });
-
-    document.addEventListener("click", closeWalletPopup);
-
-    // Optional: Handle deposit and withdraw button clicks
-    document.getElementById("deposit").addEventListener("click", function () {
-        const amount = parseInt(walletAmount.textContent);
-        walletAmount.textContent = amount + 100; // Add 100 to the current balance
-        walletMenu.classList.remove('active'); // Close the menu after action
-    });
-
-    document.getElementById("withdraw").addEventListener("click", function () {
-        const amount = parseInt(walletAmount.textContent);
-        if (amount >= 100) {
-            walletAmount.textContent = amount - 100; // Subtract 100 from the current balance
-        } else {
-            alert('Insufficient balance'); // Alert if balance is less than 100
-        }
-        walletMenu.classList.remove('active'); // Close the menu after action
-    });
 });
+
+// Keep these functions outside DOMContentLoaded
+function showWalletNotification(message, type = 'error') {
+    const notification = document.getElementById('walletNotification');
+    notification.textContent = message;
+    notification.className = `wallet-notification ${type}`;
+    
+    notification.offsetHeight; // Force reflow
+    notification.classList.add('show');
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 3000);
+}
+
+function updateWalletDisplay(amount) {
+    const walletDisplay = document.getElementById('walletDisplayAmount');
+    if (walletDisplay) {
+        walletDisplay.textContent = amount;
+    }
+}
+
+function loadWalletAmount() {
+    const token = sessionStorage.getItem('token');
+    if (!token) {
+        console.log('No token found');
+        return;
+    }
+
+    fetch('/wallet-amount', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.amount !== undefined) {
+            currentWalletAmount = data.amount;
+            updateWalletDisplay(data.amount);
+            console.log('Loaded wallet amount:', data.amount);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading wallet:', error);
+    });
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if token exists
@@ -364,6 +569,26 @@ function showLoggedInState(username) {
     document.getElementById('loginBtn').style.display = 'none';
     document.querySelector('.user-section').style.display = 'flex';
     document.querySelector('.username-display').textContent = username;
+    
+    // Load wallet amount
+    const token = sessionStorage.getItem('token');
+    if (token) {
+        fetch('/wallet-amount', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.amount !== undefined) {
+                currentWalletAmount = data.amount;
+                updateWalletDisplay(data.amount);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading wallet:', error);
+        });
+    }
 }
 
 function showLoggedOutState() {
@@ -384,3 +609,4 @@ socket.on('reconnect', (attemptNumber) => {
 socket.on('reconnect_error', (error) => {
     console.log('Reconnection error:', error);
 });
+
