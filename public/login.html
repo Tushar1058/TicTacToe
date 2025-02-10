@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login / Sign Up</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            color: #00ff88;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        #backButton {
+            position: fixed;
+            width: fit-content;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: transparent;
+            color: #00ff88;
+            border: 2px solid #00ff88;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #backButton:hover {
+            background: #00ff88;
+            color: #1a1a1a;
+            box-shadow: 0 0 10px #00ff88;
+        }
+
+        #authContainer {
+            background: rgba(45, 45, 45, 0.5);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        h2 {
+            color: #00ff88;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 5px;
+            color: #ffffff;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin: 20px 0;
+            background: #00ff88;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #00cc6a;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+        }
+
+        p {
+            margin-top: 15px;
+            color: #ffffff;
+        }
+
+        a {
+            color: #00ff88;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        a:hover {
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        @media screen and (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            #backButton {
+                top: 15px;
+                left: 15px;
+                padding: 8px 15px;
+                font-size: 0.9em;
+            }
+        }
+
+        .error-message {
+            color: #ff4444;
+            font-size: 0.9em;
+            margin: 5px 0;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .show-error {
+            display: block;
+        }
+
+        input.error {
+            border-color: #ff4444;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.1);
+        }
+
+        .welcome-message {
+            color: #00ff88;
+            font-size: 1.2em;
+            margin: 10px 0;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .forgot-password {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #888;
+        }
+
+        .forgot-password a {
+            color: #00ff88;
+            text-decoration: none;
+        }
+
+        .forgot-password a:hover {
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <button id="backButton" onclick="window.location.href='index.html'">
+        <i class="fas fa-arrow-left"></i> Back
+    </button>
+    <div class="container">
+        <h1>Welcome to Tic Tac Toe</h1>
+        <div id="authContainer">
+            <div id="signupForm">
+                <h2>Sign Up</h2>
+                <div id="signupError" class="error-message"></div>
+                <input type="text" id="newUsername" placeholder="Username" required>
+                <input type="email" id="newEmail" placeholder="Email" required>
+                <input type="password" id="newPassword" placeholder="Password" required>
+                <button id="signupButton">Sign Up</button>
+                <p>Already have an account? <a href="#" id="showLogin">Login</a></p>
+            </div>
+            <div id="loginForm" style="display: none;">
+                <h2>Login</h2>
+                <div id="welcomeBack" class="welcome-message"></div>
+                <div id="loginError" class="error-message"></div>
+                <input type="text" id="username" placeholder="Username" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button id="loginButton">Login</button>
+                <p>Don't have an account? <a href="#" id="showSignup">Sign Up</a></p>
+                <p class="forgot-password">Forgot Password? <a href="#" id="showReset">Reset it here</a></p>
+            </div>
+            <div id="resetForm" style="display: none;">
+                <h2>Reset Password</h2>
+                <div id="resetError" class="error-message"></div>
+                <input type="email" id="resetEmail" placeholder="Email" required>
+                <button id="resetButton">Send Reset Link</button>
+                <p>Remember your password? <a href="#" id="showLoginFromReset">Login</a></p>
+            </div>
+        </div>
+    </div>
+    <script>
+        function showError(formType, message) {
+            const errorDiv = document.getElementById(formType + 'Error');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show-error');
+            
+            setTimeout(() => {
+                errorDiv.classList.remove('show-error');
+            }, 3000);
+        }
+
+        document.getElementById('showLogin').addEventListener('click', function() {
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('signupError').classList.remove('show-error');
+        });
+
+        document.getElementById('showSignup').addEventListener('click', function() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'block';
+            document.getElementById('loginError').classList.remove('show-error');
+        });
+
+        document.getElementById('signupButton').addEventListener('click', function() {
+            const username = document.getElementById('newUsername').value;
+            const email = document.getElementById('newEmail').value;
+            const password = document.getElementById('newPassword').value;
+
+            if (!username || !email || !password) {
+                showError('signup', 'Please fill in all fields');
+                return;
+            }
+
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showError('signup', 'Please enter a valid email address');
+                return;
+            }
+
+            fetch('/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, email, password })
+            })
+            .then(response => response.text())
+            .then(data => {
+                if (data === 'User created') {
+                    document.getElementById('signupForm').style.display = 'none';
+                    document.getElementById('loginForm').style.display = 'block';
+                    document.getElementById('welcomeBack').textContent = `Welcome back, ${username}!`;
+                    document.getElementById('welcomeBack').style.display = 'block';
+                    document.getElementById('username').value = username;
+                } else {
+                    showError('signup', data);
+                }
+            })
+            .catch(error => {
+                showError('signup', 'An error occurred. Please try again.');
+            });
+        });
+
+        document.getElementById('showReset').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('resetForm').style.display = 'block';
+        });
+
+        document.getElementById('showLoginFromReset').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('resetForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+        });
+
+        document.getElementById('loginButton').addEventListener('click', function() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showError('login', 'Please fill in all fields');
+                return;
+            }
+
+            fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(text);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.message === 'Login successful') {
+                    // Store username and token in sessionStorage instead of localStorage
+                    sessionStorage.setItem('username', data.username);
+                    sessionStorage.setItem('token', data.token);
+                    if (!data.isNewUser) {
+                        document.getElementById('welcomeBack').textContent = `Welcome back, ${data.username}!`;
+                        document.getElementById('welcomeBack').style.display = 'block';
+                    }
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                }
+            })
+            .catch(error => {
+                showError('login', error.message);
+            });
+        });
+
+        document.getElementById('resetButton').addEventListener('click', function() {
+            const email = document.getElementById('resetEmail').value;
+
+            if (!email) {
+                showError('reset', 'Please enter your email');
+                return;
+            }
+
+            fetch('/reset-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            })
+            .then(response => response.text())
+            .then(data => {
+                if (data === 'Reset link sent') {
+                    showError('reset', 'Password reset link has been sent to your email');
+                    setTimeout(() => {
+                        document.getElementById('resetForm').style.display = 'none';
+                        document.getElementById('loginForm').style.display = 'block';
+                    }, 3000);
+                } else {
+                    showError('reset', data);
+                }
+            })
+            .catch(error => {
+                showError('reset', 'An error occurred. Please try again.');
+            });
+        });
+    </script>
+</body>
+</html> 
