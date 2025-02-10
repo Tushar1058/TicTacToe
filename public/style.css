@@ -16,6 +16,11 @@
     padding: 0;
     box-sizing: border-box;
     font-family: 'Poppins', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 body {
@@ -38,6 +43,11 @@ body {
     align-items: center;
     justify-content: center;
     min-height: calc(100vh - 72px); /* Full height minus header */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none;
 }
 
 h1 {
@@ -57,6 +67,10 @@ h1 {
     padding: 20px;
     position: relative;
     background: transparent;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .board::before {
@@ -127,12 +141,30 @@ h1 {
     position: relative;
     z-index: 2;
     margin: 5px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none;
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.cell:active {
+    background-color: transparent;
+    outline: none;
 }
 
 .symbol {
     opacity: 0;
     transform: scale(0);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    pointer-events: none; /* Prevent symbol from being selectable */
 }
 
 .symbol.show {
@@ -164,6 +196,11 @@ h1 {
     letter-spacing: 1px;
     position: relative;
     overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none;
 }
 
 .glow-button:hover {
@@ -194,6 +231,11 @@ h1 {
     font-weight: bold;
     color: var(--text);
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none;
 }
 
 .modal {
@@ -238,12 +280,22 @@ h1 {
     margin: 20px auto;
     cursor: pointer;
     display: block;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none;
 }
 
 #status {
     margin: 20px;
     font-size: 1.2em;
     font-weight: bold;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none;
 }
 
 #okButton {
@@ -258,6 +310,11 @@ h1 {
     display: block;
     margin-left: auto;
     margin-right: auto;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none;
 }
 
 #okButton:hover {
@@ -271,6 +328,11 @@ h1 {
     margin: 10px 0;
     font-size: 1.2em;
     color: var(--primary);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none;
 }
 
 .match-stats span {
@@ -330,6 +392,10 @@ h1 {
     color: var(--text);
     transition: all 0.3s ease;
     font-size: 1em;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .wallet-btn:hover {
@@ -365,6 +431,10 @@ h1 {
     align-items: center;
     gap: 8px;
     transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .wallet-action:hover {
@@ -440,6 +510,11 @@ h1 {
     text-decoration: none;
     font-weight: bold;
     transition: background 0.3s, box-shadow 0.3s;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none;
 }
 
 .login-button:hover {
@@ -462,17 +537,18 @@ h1 {
     }
 
     .board {
-        width: 350px;
-        height: 350px;
+        width: 300px;
+        height: 300px;
         padding: 15px;
         margin: 15px auto;
     }
 
     .cell {
-        width: 100px;
-        height: 100px;
-        font-size: 3.5em;
+        width: 80px;
+        height: 80px;
+        font-size: 3em;
         margin: 3px;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .live-player-count {
@@ -498,8 +574,8 @@ h1 {
     }
 
     #findGame {
-        padding: 12px 25px;
-        font-size: 1.3em;
+        padding: 10px 25px;
+        font-size: 1.1em;
         margin: 15px;
     }
 
@@ -580,10 +656,14 @@ h1 {
         max-width: 100px; /* Reduced from 150px */
     }
 
-    .user-btn {
-        width: 34px;
-        height: 34px;
-        font-size: 0.9em;
+    .user-btn,
+    .wallet-btn {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .user-action,
+    .wallet-action {
+        -webkit-tap-highlight-color: transparent;
     }
 
     .live-player-count {
@@ -684,10 +764,14 @@ h1 {
         max-width: 80px;
     }
 
-    .user-btn {
-        width: 30px;
-        height: 30px;
-        font-size: 0.8em;
+    .user-btn,
+    .wallet-btn {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .user-action,
+    .wallet-action {
+        -webkit-tap-highlight-color: transparent;
     }
 
     .live-player-count {
@@ -702,7 +786,8 @@ h1 {
         right: -10px;
     }
 
-    .wallet-action, .user-action {
+    .user-action,
+    .wallet-action {
         padding: 8px 12px;
         font-size: 0.9em;
     }
@@ -815,6 +900,10 @@ h1 {
     color: var(--primary);
     transition: all 0.3s ease;
     font-size: 1.1em;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .user-btn:hover {
@@ -851,9 +940,42 @@ h1 {
     align-items: center;
     gap: 8px;
     transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .user-action:hover {
     background: var(--primary);
     color: var(--background);
+}
+
+/* Add touch-specific styles */
+@media (hover: none) and (pointer: coarse) {
+    /* This targets touch devices specifically */
+    .cell:active,
+    .glow-button:active,
+    .user-btn:active,
+    .wallet-btn:active,
+    .user-action:active,
+    .wallet-action:active {
+        background-color: var(--cell-hover);
+        opacity: 0.8;
+    }
+}
+
+/* Add to prevent any text selection in the game area */
+.container, 
+.board, 
+.cell, 
+.symbol,
+.status-text,
+.match-stats,
+#status {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none;
 }
