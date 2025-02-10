@@ -9,19 +9,14 @@
         :root {
             --primary: #00ff88;
             --background: #1a1a1a;
-            --text: #ffffff;
         }
         
         body {
             margin: 0;
             padding: 0;
             min-height: 100vh;
-            padding-top: 72px;
+            padding-top: 72px; /* Updated to match new header height */
             background-color: var(--background);
-            color: var(--text);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
         }
 
         .site-header {
@@ -46,7 +41,6 @@
 
         .container {
             max-width: 600px;
-            width: 100%;
             margin: 0 auto;
             text-align: center;
             padding: 20px;
@@ -55,50 +49,6 @@
             align-items: center;
             justify-content: center;
             min-height: calc(100vh - 72px);
-            position: fixed; /* Prevent jumping */
-            top: 72px; /* Match header height */
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        h1 {
-            font-size: 3em;
-            margin-bottom: 30px;
-            color: var(--primary);
-            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
-        }
-
-        .glow-button {
-            padding: 12px 30px;
-            font-size: 1.2em;
-            margin: 20px;
-            cursor: pointer;
-            background: transparent;
-            color: var(--primary);
-            border: 2px solid var(--primary);
-            border-radius: 50px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .status-text {
-            margin: 20px;
-            font-size: 1.2em;
-            font-weight: bold;
-            color: var(--text);
-        }
-
-        /* Board initial state */
-        .board {
-            display: none;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0;
-            margin: 20px auto;
-            width: 400px;
-            height: 400px;
-            padding: 20px;
-            position: relative;
-            background: transparent;
         }
 
         /* Add login button styles to critical CSS */
@@ -144,19 +94,35 @@
                 <div class="wallet-info">
                     <div class="wallet-display">
                         <span class="currency-symbol">₹</span>
-                        <span class="amount" id="walletAmount">100</span>
+                        <span class="amount" id="walletDisplayAmount">100</span>
                     </div>
                     <button class="wallet-btn">
                         <i class="fas fa-wallet"></i>
                     </button>
                 </div>
                 <div class="wallet-menu" id="walletPopup">
-                    <button class="wallet-action" id="deposit">
-                        <i class="fas fa-plus-circle"></i> Deposit
-                    </button>
-                    <button class="wallet-action" id="withdraw">
-                        <i class="fas fa-minus-circle"></i> Withdraw
-                    </button>
+                    <div class="wallet-header">
+                        <i class="fas fa-wallet"></i>
+                        <span>Wallet Menu</span>
+                        <button class="close-btn">&times;</button>
+                    </div>
+                    <div class="wallet-section">
+                        <div class="wallet-action">
+                            <div class="input-wrapper">
+                                <span class="input-symbol">₹</span>
+                                <input type="number" id="walletInputAmount" placeholder="Enter amount" min="100" max="10000" step="100">
+                            </div>
+                            <div class="wallet-buttons">
+                                <button id="deposit">
+                                    <i class="fas fa-plus-circle"></i> Deposit
+                                </button>
+                                <button id="withdraw">
+                                    <i class="fas fa-minus-circle"></i> Withdraw
+                                </button>
+                            </div>
+                        </div>
+                        <div class="wallet-notification" id="walletNotification"></div>
+                    </div>
                 </div>
             </div>
         </div>
