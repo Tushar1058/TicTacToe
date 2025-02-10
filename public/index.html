@@ -4,10 +4,179 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tic Tac Toe Multiplayer</title>
+    <!-- Add critical CSS to prevent layout shift -->
+    <style>
+        :root {
+            --primary: #00ff88;
+            --background: #1a1a1a;
+            --text: #ffffff;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            padding-top: 72px;
+            background-color: var(--background);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .site-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 72px; /* Updated height */
+            min-height: 72px; /* Updated min-height */
+            background: linear-gradient(135deg, rgba(30, 30, 30, 0.6), rgba(30, 30, 30, 0.3));
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 1000;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            text-align: center;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 72px);
+            position: fixed; /* Prevent jumping */
+            top: 72px; /* Match header height */
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 30px;
+            color: var(--primary);
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .glow-button {
+            padding: 12px 30px;
+            font-size: 1.2em;
+            margin: 20px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            border-radius: 50px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-text {
+            margin: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--text);
+        }
+
+        /* Board initial state */
+        .board {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            margin: 20px auto;
+            width: 400px;
+            height: 400px;
+            padding: 20px;
+            position: relative;
+            background: transparent;
+        }
+
+        /* Add login button styles to critical CSS */
+        .login-button {
+            color: var(--primary);
+            padding: 10px 15px;
+            border: 2px solid var(--primary);
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: none; /* Remove transition initially */
+            display: inline-block; /* Prevent layout shift */
+            min-width: 80px; /* Set minimum width */
+            text-align: center;
+        }
+
+        /* Move transitions to a separate class that's added after page load */
+        .transitions-enabled .login-button {
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        .login-button:hover {
+            color: var(--background);
+            background-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary);
+        }
+    </style>
+    <!-- Regular stylesheets -->
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
+    <header class="site-header">
+        <div class="left-section">
+            <div class="logo">
+                <span class="logo-icon">✦</span>
+                <span class="logo-text">XO2P</span>
+            </div>
+        </div>
+        <div class="center-section">
+            <div class="wallet-container">
+                <div class="wallet-info">
+                    <div class="wallet-display">
+                        <span class="currency-symbol">₹</span>
+                        <span class="amount" id="walletAmount">100</span>
+                    </div>
+                    <button class="wallet-btn">
+                        <i class="fas fa-wallet"></i>
+                    </button>
+                </div>
+                <div class="wallet-menu" id="walletPopup">
+                    <button class="wallet-action" id="deposit">
+                        <i class="fas fa-plus-circle"></i> Deposit
+                    </button>
+                    <button class="wallet-action" id="withdraw">
+                        <i class="fas fa-minus-circle"></i> Withdraw
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="right-section">
+            <a href="login.html" class="login-button initial-state" id="loginBtn" style="display: none;">Login</a>
+            <div class="user-section" style="display: none;">
+                <span class="username-display"></span>
+                <div class="user-container">
+                    <button class="user-btn">
+                        <i class="fas fa-user"></i>
+                    </button>
+                    <div class="user-menu" id="userPopup">
+                        <button class="user-action" id="logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
     <div id="livePlayerCount" class="live-player-count">Live Players: 0</div>
     <div class="container">
         <h1>Tic Tac Toe</h1>
@@ -40,5 +209,24 @@
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
+    <script>
+        // Enable transitions after page load
+        window.addEventListener('load', function() {
+            document.body.classList.add('transitions-enabled');
+        });
+
+        // Check login state immediately
+        (function() {
+            const token = sessionStorage.getItem('token');
+            const username = sessionStorage.getItem('username');
+            if (token && username) {
+                document.getElementById('loginBtn').style.display = 'none';
+                document.querySelector('.user-section').style.display = 'flex';
+                document.querySelector('.username-display').textContent = username;
+            } else {
+                document.getElementById('loginBtn').style.display = 'block';
+            }
+        })();
+    </script>
 </body>
 </html> 
