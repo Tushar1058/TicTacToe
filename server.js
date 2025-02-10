@@ -7,7 +7,7 @@ const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = 'your-secret-key'; // In production, use environment variable
+const JWT_SECRET = 'your-secret-key'; // Use environment variable in production
 const activeConnections = new Map(); // Track unique connections by tabId
 const path = require('path');
 let lastBroadcastCount = 0;
@@ -29,19 +29,51 @@ const db = new sqlite3.Database(dbPath, (err) => {
     }
 });
 
-// Create table if it doesn't exist
-db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE,
-    email TEXT UNIQUE,
-    password TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)`, (err) => {
-    if (err) {
-        console.error('Table creation error:', err.message);
-    } else {
-        console.log('Users table ready');
-    }
+// Update the database initialization to add wallet_amount column
+db.serialize(() => {
+    // First create the users table if it doesn't exist
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        email TEXT UNIQUE,
+        password TEXT,
+        wallet_amount INTEGER DEFAULT 1000,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`, (err) => {
+        if (err) {
+            console.error('Table creation error:', err.message);
+        } else {
+            console.log('Users table ready');
+        }
+    });
+
+    // Then add wallet_amount column if it doesn't exist
+    db.run(`
+        ALTER TABLE users 
+        ADD COLUMN wallet_amount INTEGER DEFAULT 1000;
+    `, (err) => {
+        if (err) {
+            // Column might already exist, which is fine
+            if (!err.message.includes('duplicate column name')) {
+                console.error('Error adding wallet_amount column:', err.message);
+            }
+        } else {
+            console.log('Added wallet_amount column');
+        }
+    });
+
+    // Update existing users to have default wallet amount if they don't have it
+    db.run(`
+        UPDATE users 
+        SET wallet_amount = 1000 
+        WHERE wallet_amount IS NULL
+    `, (err) => {
+        if (err) {
+            console.error('Error updating existing users:', err.message);
+        } else {
+            console.log('Updated existing users with default wallet amount');
+        }
+    });
 });
 
 // Handle signup with password hashing
@@ -119,18 +151,18 @@ app.post('/login', (req, res) => {
             try {
                 const match = await bcrypt.compare(password, user.password);
                 if (match) {
-                    // Create token
                     const token = jwt.sign(
                         { username: user.username, id: user.id },
                         JWT_SECRET,
-                        { expiresIn: '7d' } // Token expires in 7 days
+                        { expiresIn: '7d' }
                     );
 
                     res.status(200).json({
                         message: 'Login successful',
                         isNewUser: false,
                         username: user.username,
-                        token: token
+                        token: token,
+                        wallet_amount: user.wallet_amount
                     });
                 } else {
                     res.status(401).send('Invalid username or password');
@@ -372,6 +404,71 @@ function checkWinner(board) {
     }
     return false;
 }
+
+// Endpoint to get wallet amount
+app.get('/wallet-amount', (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+        return res.status(401).json({ error: 'No token provided' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        db.get('SELECT wallet_amount FROM users WHERE username = ?', 
+            [decoded.username], 
+            (err, row) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Database error' });
+                }
+                if (!row) {
+                    return res.status(404).json({ error: 'User not found' });
+                }
+                res.json({ amount: row.wallet_amount });
+            }
+        );
+    } catch (err) {
+        res.status(401).json({ error: 'Invalid token' });
+    }
+});
+
+// Endpoint to update wallet amount
+app.post('/update-wallet', (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    const { amount } = req.body;
+
+    console.log('Received wallet update request:', { amount }); // Add logging
+
+    if (!token) {
+        console.log('No token provided');
+        return res.status(401).json({ error: 'No token provided' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        console.log('Updating wallet for user:', decoded.username);
+
+        db.run('UPDATE users SET wallet_amount = ? WHERE username = ?',
+            [amount, decoded.username],
+            function(err) { // Use function to access this.changes
+                if (err) {
+                    console.error('Database error:', err);
+                    return res.status(500).json({ error: 'Database error' });
+                }
+                
+                if (this.changes > 0) {
+                    console.log('Wallet updated successfully');
+                    res.json({ success: true, amount });
+                } else {
+                    console.log('No rows updated');
+                    res.status(404).json({ error: 'User not found' });
+                }
+            }
+        );
+    } catch (err) {
+        console.error('Token verification error:', err);
+        res.status(401).json({ error: 'Invalid token' });
+    }
+});
 
 // Start the server
 const PORT = process.env.PORT || 3000;
