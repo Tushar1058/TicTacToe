@@ -131,7 +131,7 @@ h1 {
 .cell {
     width: 100px;
     height: 100px;
-    background: transparent;
+    background: transparent !important; /* Force transparent background */
     border: none;
     display: flex;
     align-items: center;
@@ -147,12 +147,25 @@ h1 {
     -webkit-user-select: none;
     user-select: none;
     outline: none;
-    background-color: transparent;
-    box-shadow: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
 }
 
+/* Remove any hover/active states on mobile */
+@media (hover: none) and (pointer: coarse) {
+    .cell:active,
+    .cell:focus,
+    .cell:hover {
+        background-color: transparent !important;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+/* Remove the previous active state */
 .cell:active {
-    background-color: transparent;
+    background-color: transparent !important;
     outline: none;
 }
 
@@ -627,11 +640,6 @@ h1 {
         width: 34px;
         height: 34px;
         font-size: 0.9em;
-    }
-
-    .wallet-menu {
-        right: -50%;
-        transform: translateX(50%);
     }
 
     .left-section {
