@@ -213,7 +213,6 @@ h1 {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
-    outline: none;
 }
 
 .glow-button:hover {
@@ -297,7 +296,6 @@ h1 {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
-    outline: none;
 }
 
 #status {
@@ -421,38 +419,159 @@ h1 {
     position: absolute;
     top: 60px;
     right: 0;
-    background: var(--modal-bg);
-    border: 1px solid var(--primary);
-    border-radius: 8px;
-    min-width: 150px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    background: rgba(20, 20, 20, 0.1);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+    min-width: 280px;
     z-index: 1000;
+    user-select: none;
+    will-change: transform;
+    transition: transform 0.05s linear;
+}
+
+.wallet-menu.dragging {
+    transition: none;
+    cursor: move;
 }
 
 .wallet-menu.active {
     display: block;
 }
 
-.wallet-action {
-    width: 100%;
-    padding: 12px 16px;
-    background: transparent;
-    border: none;
-    color: var(--text);
-    cursor: pointer;
+.wallet-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
+    justify-content: space-between;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: move;
+    border-radius: 16px 16px 0 0;
 }
 
-.wallet-action:hover {
+.close-btn {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 0 8px;
+    transition: color 0.3s ease;
+    z-index: 2;
+}
+
+.close-btn:hover {
+    color: var(--primary);
+}
+
+.wallet-section {
+    padding: 16px;
+}
+
+.wallet-action {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.input-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    padding: 4px;
+}
+
+.input-symbol {
+    color: var(--text);
+    font-size: 1.1em;
+    font-weight: 500;
+    padding: 0 5px;
+    flex-shrink: 0; /* Prevent symbol from shrinking */
+}
+
+.wallet-action input {
+    width: 80%; /* Set input width to 80% */
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--text);
+    font-size: 1em;
+    outline: none;
+    transition: all 0.3s ease;
+    margin: 0 auto; /* Center the input */
+}
+
+.wallet-action input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+}
+
+.wallet-action input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.wallet-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.wallet-buttons button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.wallet-buttons button:hover {
     background: var(--primary);
     color: var(--background);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+}
+
+.wallet-buttons button:active {
+    transform: translateY(0);
+}
+
+.wallet-buttons button i {
+    font-size: 1.1em;
+}
+
+/* Add fade in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .left-section {
@@ -484,21 +603,25 @@ h1 {
     gap: 12px;
 }
 
+/* Base user section styles */
 .user-section {
     display: flex;
     align-items: center;
-    gap: 12px;
-    max-width: 200px; /* Limit the width */
+    gap: 8px;
+    max-width: 150px;
+    position: absolute;
+    right: 15px;
+    top: 15px; /* Adjusted to be slightly lower */
 }
 
 .username-display {
-    color: #00ff88;
+    color: var(--primary);
     font-weight: 600;
-    font-size: 0.95em;
-    white-space: nowrap; /* Prevent username from wrapping */
-    overflow: hidden; /* Hide overflow */
-    text-overflow: ellipsis; /* Add ellipsis for long usernames */
-    max-width: 150px; /* Maximum width for username */
+    font-size: 0.85em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
 }
 
 .profile-icon {
@@ -534,6 +657,108 @@ h1 {
     color: var(--background);
     background-color: var(--primary);
     box-shadow: 0 0 10px #00ff88, 0 0 20px #00ff88;
+}
+
+/* Mobile styles */
+@media screen and (max-width: 768px) {
+    .user-section {
+        max-width: 120px;
+        right: 10px;
+        top: 13px; /* Adjusted for smaller screens */
+    }
+
+    .username-display {
+        font-size: 0.8em;
+        max-width: 70px;
+    }
+
+    .user-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 0.9em;
+    }
+
+    .user-menu {
+        top: 55px;
+        right: 10px;
+        min-width: 130px;
+    }
+
+    .wallet-menu {
+        position: fixed;
+        top: 70px;  /* Reduced from 80px */
+        left: 50%;
+        transform: translateX(-50%) !important;
+        width: 90%;
+        max-width: 350px;
+        cursor: default;
+        background: rgba(20, 20, 20, 0.85);
+        backdrop-filter: blur(40px);
+        -webkit-backdrop-filter: blur(40px);
+        margin: 0;
+    }
+}
+
+/* Small mobile screens */
+@media screen and (max-width: 480px) {
+    .user-section {
+        max-width: 100px;
+        right: 8px;
+        top: 11px; /* Further adjusted for smaller screens */
+    }
+
+    .username-display {
+        font-size: 0.75em;
+        max-width: 60px;
+    }
+
+    .user-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.85em;
+    }
+
+    .user-menu {
+        right: 8px;
+        min-width: 120px;
+    }
+
+    .wallet-menu {
+        top: 65px;  /* Reduced from 75px */
+        width: 95%;
+        max-width: 320px;
+    }
+}
+
+/* Very small screens */
+@media screen and (max-width: 360px) {
+    .user-section {
+        max-width: 90px;
+        right: 6px;
+        top: 10px; /* Further adjusted for very small screens */
+    }
+
+    .username-display {
+        font-size: 0.7em;
+        max-width: 50px;
+    }
+
+    .user-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.8em;
+    }
+
+    .user-menu {
+        right: 6px;
+        min-width: 110px;
+    }
+
+    .wallet-menu {
+        top: 60px;  /* Reduced from 70px */
+        width: 98%;
+        max-width: 300px;
+    }
 }
 
 /* Base styles remain the same, adding responsive styles */
@@ -680,6 +905,32 @@ h1 {
         font-size: 1em;
         padding: 8px 16px;
     }
+
+    .wallet-header {
+        cursor: default;
+        justify-content: space-between;
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .wallet-section {
+        padding: 16px;
+    }
+
+    .input-wrapper {
+        width: 100%;
+    }
+
+    .wallet-buttons {
+        flex-direction: column;
+        gap: 12px;
+        padding: 0 10px;
+    }
+
+    .wallet-buttons button {
+        width: 100%;
+        padding: 14px;
+        font-size: 1em;
+    }
 }
 
 @media screen and (max-width: 480px) {
@@ -789,15 +1040,49 @@ h1 {
         padding: 7px 14px;
     }
 
-    .wallet-menu, .user-menu {
-        min-width: 120px;
-        right: -10px;
+    .wallet-menu {
+        position: fixed;
+        top: 70px;  /* Reduced from 80px */
+        left: 50%;
+        transform: translateX(-50%) !important;
+        width: 90%;
+        max-width: 350px;
+        cursor: default;
+        background: rgba(20, 20, 20, 0.85);
+        backdrop-filter: blur(40px);
+        -webkit-backdrop-filter: blur(40px);
+        margin: 0;
     }
 
-    .user-action,
-    .wallet-action {
-        padding: 8px 12px;
-        font-size: 0.9em;
+    .wallet-header {
+        cursor: default;
+        justify-content: space-between;
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .wallet-section {
+        padding: 16px;
+    }
+
+    .input-wrapper {
+        width: 100%;
+    }
+
+    .wallet-buttons {
+        flex-direction: column;
+        gap: 12px;
+        padding: 0 10px;
+    }
+
+    .wallet-buttons button {
+        width: 100%;
+        padding: 14px;
+        font-size: 1em;
+    }
+
+    .wallet-notification {
+        font-size: 0.85em;
+        padding: 8px;
     }
 }
 
@@ -834,61 +1119,111 @@ h1 {
         font-size: 0.9em;
         padding: 6px 12px;
     }
-}
 
-/* Add landscape orientation fixes */
-@media screen and (max-height: 480px) and (orientation: landscape) {
-    .site-header {
-        height: 50px;
-        min-height: 50px;
+    .wallet-menu {
+        top: 60px;  /* Reduced from 70px */
+        width: 98%;
+        max-width: 300px;
     }
 
-    body {
-        padding-top: 50px;
+    .wallet-header {
+        padding: 10px;
     }
 
-    .live-player-count {
-        top: 65px;
+    .wallet-section {
+        padding: 10px;
     }
 
-    .wallet-menu, .user-menu {
-        top: 45px;
-    }
-}
-
-/* Portrait orientation specific styles */
-@media screen and (max-height: 700px) {
-    .container {
-        padding-top: 50px;
-    }
-    
-    h1 {
-        margin-bottom: 15px;
-    }
-    
-    .board {
-        margin: 10px auto;
+    .wallet-buttons button {
+        padding: 10px;
+        font-size: 0.9em;
     }
 }
 
-.site-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 72px; /* Increased from 64px */
-    min-height: 72px;
-    background: linear-gradient(135deg, rgba(30, 30, 30, 0.6), rgba(30, 30, 30, 0.3));
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+/* Add to prevent any text selection in the game area */
+.container, 
+.board, 
+.cell, 
+.symbol,
+.status-text,
+.match-stats,
+#status {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none;
+}
+
+.wallet-action {
+    padding: 12px 16px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 0 20px;
-    z-index: 1000;
-    box-sizing: border-box;
+    gap: 10px;
+}
+
+.deposit-section, .withdraw-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wallet-action input {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid var(--primary);
+    background: var(--background);
+    color: var(--text);
+    width: 100%;
+    font-size: 0.9em;
+}
+
+.wallet-action input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
+}
+
+.wallet-action button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    background: var(--primary);
+    color: var(--background);
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+}
+
+.wallet-action button:hover {
+    background: var(--button-hover);
+}
+
+.wallet-notification {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    word-wrap: break-word;
+}
+
+.wallet-notification.success {
+    background: rgba(0, 255, 136, 0.1);
+    color: var(--primary);
+    border: 1px solid rgba(0, 255, 136, 0.2);
+}
+
+.wallet-notification.error {
+    background: rgba(255, 68, 68, 0.1);
+    color: #ff4444;
+    border: 1px solid rgba(255, 68, 68, 0.2);
+}
+
+.wallet-notification.show {
+    opacity: 1;
 }
 
 .user-container {
@@ -957,33 +1292,4 @@ h1 {
 .user-action:hover {
     background: var(--primary);
     color: var(--background);
-}
-
-/* Add touch-specific styles */
-@media (hover: none) and (pointer: coarse) {
-    /* This targets touch devices specifically */
-    .cell:active,
-    .glow-button:active,
-    .user-btn:active,
-    .wallet-btn:active,
-    .user-action:active,
-    .wallet-action:active {
-        background-color: var(--cell-hover);
-        opacity: 0.8;
-    }
-}
-
-/* Add to prevent any text selection in the game area */
-.container, 
-.board, 
-.cell, 
-.symbol,
-.status-text,
-.match-stats,
-#status {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-    outline: none;
 }
