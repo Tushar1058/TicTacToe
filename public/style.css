@@ -121,6 +121,9 @@ h1 {
     position: relative;
     z-index: 2;
     margin: 5px;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    user-select: none;
 }
 
 .symbol {
@@ -158,6 +161,9 @@ h1 {
     letter-spacing: 1px;
     position: relative;
     overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    user-select: none;
 }
 
 .glow-button:hover {
@@ -232,6 +238,9 @@ h1 {
     margin: 20px auto;
     cursor: pointer;
     display: block;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    user-select: none;
 }
 
 #status {
@@ -252,6 +261,9 @@ h1 {
     display: block;
     margin-left: auto;
     margin-right: auto;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    user-select: none;
 }
 
 #okButton:hover {
@@ -352,6 +364,12 @@ h1 {
         font-size: 1.3em;
         margin-top: 25px;
     }
+
+    .cell, button, #findGame, #okButton, .glow-button {
+        -webkit-tap-highlight-color: transparent;
+        outline: none;
+        user-select: none;
+    }
 }
 
 @media screen and (max-width: 480px) {
@@ -387,6 +405,12 @@ h1 {
         width: fit-content;
         margin: 20px auto;
         display: block;
+    }
+
+    .cell, button, #findGame, #okButton, .glow-button {
+        -webkit-tap-highlight-color: transparent;
+        outline: none;
+        user-select: none;
     }
 }
 
