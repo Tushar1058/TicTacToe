@@ -166,31 +166,67 @@ socket.on('newRound', ({ board, currentTurn }) => {
     updateStatus();
 });
 
-// Update the count handler
+// Initial setup for live player count
+document.addEventListener('DOMContentLoaded', () => {
+    const countElement = document.getElementById('livePlayerCount');
+    if (countElement) {
+        countElement.innerHTML = 'Live Players: <div class="number">0</div>';
+    }
+});
+
+let lastCount = 0;
+let isInitialCount = true;
+let lastConnectTime = 0;
+const RECONNECT_THRESHOLD = 2000; // 2 seconds threshold
+
+socket.on('connect', () => {
+    console.log('Connected to server');
+    const currentTime = Date.now();
+    
+    // Only emit connection if enough time has passed since last connection
+    if (currentTime - lastConnectTime > RECONNECT_THRESHOLD) {
+        socket.emit('playerConnected');
+        lastConnectTime = currentTime;
+    }
+});
+
+socket.on('disconnect', () => {
+    console.log('Disconnected from server');
+    socket.emit('playerDisconnected');
+});
+
 socket.on('updateUserCount', (count) => {
     const countElement = document.getElementById('livePlayerCount');
     if (!countElement) return;
 
-    sessionStorage.setItem('lastPlayerCount', count);
+    const numberElement = countElement.querySelector('.number');
+    const currentCount = parseInt(numberElement?.textContent || '0');
 
-    countElement.style.transition = 'opacity 0.3s ease';
-    countElement.style.opacity = '0';
-    
-    setTimeout(() => {
-        countElement.textContent = `Live Players: ${count}`;
-        countElement.style.opacity = '1';
-    }, 300);
-});
+    if (isInitialCount) {
+        numberElement.textContent = count;
+        lastCount = count;
+        isInitialCount = false;
+        return;
+    }
 
-// Request count on connection and reconnection
-socket.on('connect', () => {
-    console.log('Connected to server');
-    socket.emit('requestUserCount');
-});
-
-socket.on('reconnect', () => {
-    console.log('Reconnected to server');
-    socket.emit('requestUserCount');
+    if (count > lastCount) {
+        numberElement.classList.add('updating', 'up');
+        setTimeout(() => {
+            numberElement.textContent = count;
+            setTimeout(() => {
+                numberElement.classList.remove('updating', 'up');
+            }, 300);
+        }, 200);
+    } else if (count < lastCount) {
+        numberElement.classList.add('updating', 'down');
+        setTimeout(() => {
+            numberElement.textContent = count;
+            setTimeout(() => {
+                numberElement.classList.remove('updating', 'down');
+            }, 300);
+        }, 200);
+    }
+    lastCount = count;
 });
 
 board.addEventListener('click', (e) => {
@@ -412,7 +448,7 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         });
 
-        // Add withdraw handler
+        // Update withdraw handler
         document.getElementById("withdraw").addEventListener("click", function() {
             const token = sessionStorage.getItem('token');
             if (!token) {
@@ -424,6 +460,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
             if (!amount || isNaN(amount) || amount < 100) {
                 showWalletNotification('Please enter an amount of at least ₹100');
+                return;
+            }
+
+            if (amount > 10000) {
+                showWalletNotification('Maximum withdrawal amount is ₹10,000');
                 return;
             }
 
@@ -457,6 +498,14 @@ document.addEventListener("DOMContentLoaded", function() {
             });
         });
     }
+
+    loadWalletAmount();
+
+    // Get all elements with wallet amount and animate them
+    const walletAmount = document.getElementById('walletDisplayAmount');
+    if (walletAmount) {
+        countUp(walletAmount);
+    }
 });
 
 // Keep these functions outside DOMContentLoaded
@@ -473,41 +522,68 @@ function showWalletNotification(message, type = 'error') {
     }, 3000);
 }
 
-function updateWalletDisplay(amount) {
-    const walletDisplay = document.getElementById('walletDisplayAmount');
-    if (walletDisplay) {
-        walletDisplay.textContent = amount;
-    }
-}
-
 function loadWalletAmount() {
     const token = sessionStorage.getItem('token');
-    if (!token) {
-        console.log('No token found');
-        return;
-    }
+    if (!token) return;
 
-    fetch('/wallet-amount', {
+    fetch('/get-wallet', {
         headers: {
             'Authorization': `Bearer ${token}`
         }
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
-        if (data.amount !== undefined) {
+        if (data.success) {
             currentWalletAmount = data.amount;
-            updateWalletDisplay(data.amount);
-            console.log('Loaded wallet amount:', data.amount);
+            const walletDisplay = document.getElementById('walletDisplayAmount');
+            if (walletDisplay) {
+                // Always start from 0, regardless of target amount
+                countUpWallet(0, currentWalletAmount);
+            }
         }
     })
-    .catch(error => {
-        console.error('Error loading wallet:', error);
-    });
+    .catch(error => console.error('Error:', error));
+}
+
+function countUpWallet(startAmount, targetAmount) {
+    const walletDisplay = document.getElementById('walletDisplayAmount');
+    if (!walletDisplay) return;
+
+    let current = startAmount;
+    const duration = 1000; // 1 second duration
+    const fps = 60; // frames per second
+    const steps = duration / (1000 / fps); // number of steps in animation
+    const increment = Math.abs(targetAmount - startAmount) / steps;
+    const isIncreasing = targetAmount > startAmount;
+    
+    function step() {
+        if (isIncreasing) {
+            current = Math.min(current + increment, targetAmount);
+        } else {
+            current = Math.max(current - increment, targetAmount);
+        }
+        
+        walletDisplay.textContent = Math.round(current).toLocaleString();
+        
+        if ((isIncreasing && current < targetAmount) || (!isIncreasing && current > targetAmount)) {
+            requestAnimationFrame(step);
+        } else {
+            walletDisplay.textContent = targetAmount.toLocaleString(); // Ensure exact final value
+        }
+    }
+    step();
+}
+
+// Update wallet display after deposit/withdraw
+function updateWalletDisplay(newAmount) {
+    const walletDisplay = document.getElementById('walletDisplayAmount');
+    if (!walletDisplay) return;
+
+    // Get the current amount from the display
+    const currentAmount = parseInt(walletDisplay.textContent.replace(/,/g, '')) || 0;
+    
+    // Animate from current amount to new amount
+    countUpWallet(currentAmount, newAmount);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -609,4 +685,20 @@ socket.on('reconnect', (attemptNumber) => {
 socket.on('reconnect_error', (error) => {
     console.log('Reconnection error:', error);
 });
+
+function updatePlayerCount(count) {
+    const playerCountElement = document.getElementById('playerCount');
+    if (!playerCountElement) return;
+
+    // Directly update the text content
+    playerCountElement.textContent = count.toLocaleString();
+}
+
+// Update the WebSocket message handler
+socket.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    if (data.type === 'playerCount') {
+        updatePlayerCount(data.count);
+    }
+};
 
