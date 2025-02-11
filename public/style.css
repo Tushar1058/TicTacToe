@@ -78,7 +78,7 @@ h1 {
     height: 0;
     top: 20px;
     bottom: 20px;
-    animation: drawVertical 1s ease forwards;
+    animation: drawVertical 1s ease forwards 0.5s;
 }
 
 .board::after {
@@ -86,7 +86,7 @@ h1 {
     width: 0;
     left: 20px;
     right: 20px;
-    animation: drawHorizontal 1s ease forwards;
+    animation: drawHorizontal 1s ease forwards 0.5s;
 }
 
 .board-line {
@@ -118,15 +118,6 @@ h1 {
 .horizontal-1 { top: 33.33%; }
 .horizontal-2 { top: 66.66%; }
 
-@keyframes drawVertical {
-    0% { height: 0; }
-    100% { height: calc(100% - 20px); }
-}
-
-@keyframes drawHorizontal {
-    0% { width: 0; }
-    100% { width: calc(100% - 20px); }
-}
 
 .cell {
     width: 100px;
@@ -355,17 +346,84 @@ h1 {
 /* Base live count styles (for PC/desktop) */
 .live-player-count {
     position: fixed;
-    top: 85px; /* Slightly reduced from 100px */
-    left: 20px; /* Slightly reduced from 25px */
-    padding: 8px 16px; /* Slightly reduced from 10px 20px */
+    top: 85px;
+    left: 20px;
+    padding: 8px 16px;
     border-radius: 15px;
     color: var(--primary);
-    font-size: 1em; /* Reduced from 1.1em */
+    font-size: 1em;
     border: 1px solid var(--primary);
     z-index: 999;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(5px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.number {
+    display: inline-block;
+    position: relative;
+    transition: transform 0.5s ease-in-out;
+}
+
+.number.updating.up {
+    animation: slotMachineUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.number.updating.down {
+    animation: slotMachineDown 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slotMachineUp {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    40% {
+        transform: translateY(-120%);
+        opacity: 0;
+    }
+    45% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    80% {
+        transform: translateY(-15%);
+        opacity: 1;
+    }
+    90% {
+        transform: translateY(5%);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+@keyframes slotMachineDown {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    40% {
+        transform: translateY(120%);
+        opacity: 0;
+    }
+    45% {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    80% {
+        transform: translateY(15%);
+        opacity: 1;
+    }
+    90% {
+        transform: translateY(-5%);
+    }
+    100% {
+        transform: translateY(0);
+    }
 }
 
 .wallet-info {
@@ -428,8 +486,6 @@ h1 {
     min-width: 280px;
     z-index: 1000;
     user-select: none;
-    will-change: transform;
-    transition: transform 0.05s linear;
 }
 
 .wallet-menu.dragging {
@@ -450,6 +506,8 @@ h1 {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     cursor: move;
     border-radius: 16px 16px 0 0;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .close-btn {
@@ -613,7 +671,6 @@ h1 {
     right: 15px;
     top: 15px; /* Adjusted to be slightly lower */
 }
-
 .username-display {
     color: var(--primary);
     font-weight: 600;
@@ -1293,3 +1350,34 @@ h1 {
     background: var(--primary);
     color: var(--background);
 }
+
+.player-count {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9em;
+    color: var(--text);
+}
+
+.number-container {
+    display: inline-block;
+    height: 1.2em;
+    overflow: hidden;
+    vertical-align: bottom;
+    position: relative;
+}
+
+.number-scroller {
+    position: absolute;
+    top: 0;
+    left: 0;
+    text-align: center;
+    transition: top 0.5s ease-in-out;
+}
+
+.number-scroller div {
+    height: 1.2em;
+    line-height: 1.2em;
+}
+
+
