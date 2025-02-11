@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
@@ -11,6 +12,9 @@ const JWT_SECRET = 'your-secret-key'; // Use environment variable in production
 const activeConnections = new Map(); // Track unique connections by tabId
 const path = require('path');
 let lastBroadcastCount = 0;
+
+// Enable CORS for all routes
+app.use(cors());
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
@@ -475,3 +479,4 @@ const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 }); 
+
