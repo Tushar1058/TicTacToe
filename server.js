@@ -15,7 +15,10 @@ app.use(session({
 }));
 
 const server = require('http').createServer(app);
-const io = require('socket.io')(server);
+const io = require('socket.io')(server, {
+    pingTimeout: 60000,
+    pingInterval: 25000
+});
 
 // Socket.IO session handling
 io.engine.use(session({
@@ -42,6 +45,9 @@ let activeGames = new Set(); // Track active game sessions
 // Add these near the top with other state variables
 let lastEmittedCount = 0;
 let connectedUsers = new Map();
+
+// Near the top of the file, after requires
+let isShuttingDown = false;
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
@@ -1071,42 +1077,64 @@ async function updateWalletBalance(username, amount) {
     });
 }
 
-// Add error handling for the server
-server.on('error', (error) => {
-    console.error('Server error:', error);
+// Graceful shutdown handling
+function gracefulShutdown() {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    
+    console.log('Received shutdown signal. Starting graceful shutdown...');
+    
+    // Stop accepting new connections
+    server.close(() => {
+        console.log('Server closed. Closing database...');
+        
+        // Close database connection
+        db.close((err) => {
+            if (err) {
+                console.error('Error closing database:', err);
+                process.exit(1);
+            }
+            console.log('Database connection closed.');
+            process.exit(0);
+        });
+    });
+
+    // Force shutdown after 30 seconds
+    setTimeout(() => {
+        console.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+    }, 30000);
+}
+
+// Process handlers
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+    gracefulShutdown();
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    gracefulShutdown();
 });
 
-// Add connection error handling
-io.on('connect_error', (error) => {
-    console.error('Socket connection error:', error);
-});
-
-// Update the port configuration
+// Update the server start
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
+try {
+    server.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+} catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+}
+
+// Socket.IO error handling
+io.on('connect_error', (error) => {
+    console.error('Socket.IO connection error:', error);
 });
 
-// Add graceful shutdown
-process.on('SIGTERM', () => {
-    console.log('SIGTERM received. Closing server...');
-    server.close(() => {
-        console.log('Server closed. Closing database...');
-        db.close(() => {
-            console.log('Database closed. Exiting...');
-            process.exit(0);
-        });
-    });
-});
-
-process.on('SIGINT', () => {
-    console.log('SIGINT received. Closing server...');
-    server.close(() => {
-        console.log('Server closed. Closing database...');
-        db.close(() => {
-            console.log('Database closed. Exiting...');
-            process.exit(0);
-        });
-    });
+io.on('error', (error) => {
+    console.error('Socket.IO error:', error);
 });
 
