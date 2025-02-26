@@ -1653,7 +1653,7 @@ h1 {
     }
     /* Board container */
     .game-board-section {
-        margin-top: 50%;
+        margin-top: 40%;
         flex: 1;
         display: flex;
         flex-direction: column;
