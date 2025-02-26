@@ -154,31 +154,104 @@
                         </button>
                     </div>
                 </div>
+                <button class="fullscreen-btn" id="fullscreenBtn">
+                    <i class="fas fa-expand"></i>
+                </button>
             </div>
         </div>
     </header>
-    <div id="livePlayerCount" class="live-player-count"></div>
+    <div id="livePlayerCount" class="live-player-count">
+        Live: <span class="number">0</span>
+    </div>
     <div class="container">
-        <h1>Tic Tac Toe</h1>
-        <div class="match-stats" style="display: none;">
-            <span id="matchCount">Match: 1</span>
-        </div>
-        <div id="status" class="status-text">Waiting for players...</div>
-        <button id="findGame" class="glow-button">Find Game</button>
-        <div id="board" class="board">
-            <div class="board-line vertical-line vertical-1"></div>
-            <div class="board-line vertical-line vertical-2"></div>
-            <div class="board-line horizontal-line horizontal-1"></div>
-            <div class="board-line horizontal-line horizontal-2"></div>
-            <div class="cell" data-index="0"><span class="symbol"></span></div>
-            <div class="cell" data-index="1"><span class="symbol"></span></div>
-            <div class="cell" data-index="2"><span class="symbol"></span></div>
-            <div class="cell" data-index="3"><span class="symbol"></span></div>
-            <div class="cell" data-index="4"><span class="symbol"></span></div>
-            <div class="cell" data-index="5"><span class="symbol"></span></div>
-            <div class="cell" data-index="6"><span class="symbol"></span></div>
-            <div class="cell" data-index="7"><span class="symbol"></span></div>
-            <div class="cell" data-index="8"><span class="symbol"></span></div>
+        <!-- Game content wrapper -->
+        <div class="game-content">
+            <!-- Betting info at top -->
+            <div class="betting-info" id="bettingInfo" style="display: none;">
+                <div class="betting-info-header">
+                    <h3>Stake Table</h3>
+                </div>
+                <div class="player-bets">
+                    <div class="player-bet-container">
+                        <div class="player-label">You</div>
+                        <div class="player-bet" id="playerBet">
+                            <div class="player-info">
+                                <span class="player-name" id="playerName"></span>
+                                <span class="player-status">Placing bet...</span>
+                            </div>
+                            <div class="bet-info">
+                                <span class="bet-label">Stake Amount:</span>
+                                <span class="bet-amount" id="yourBetAmount">₹0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="vs-divider">VS</div>
+                    <div class="player-bet-container">
+                        <div class="player-label">Opponent</div>
+                        <div class="player-bet" id="opponentBet">
+                            <div class="player-info">
+                                <span class="player-name" id="opponentName"></span>
+                                <span class="player-status">Waiting...</span>
+                            </div>
+                            <div class="bet-info">
+                                <span class="bet-label">Stake Amount:</span>
+                                <span class="bet-amount" id="opponentBetAmount">₹0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h1>Tic Tac Toe</h1>
+            <div class="match-stats" style="display: none;">
+                <span id="matchCount">Match: 1</span>
+            </div>
+            <div id="status" class="status-text">Waiting for players...</div>
+            <button id="findGame" class="glow-button">Find Game</button>
+
+            <!-- Board and betting menu wrapper -->
+            <div class="game-board-section">
+                <div id="board" class="board">
+                    <div class="board-line vertical-line vertical-1"></div>
+                    <div class="board-line vertical-line vertical-2"></div>
+                    <div class="board-line horizontal-line horizontal-1"></div>
+                    <div class="board-line horizontal-line horizontal-2"></div>
+                    <div class="cell" data-index="0">
+                        <span class="symbol" data-symbol="O">
+                            <div class="circle-part"></div>
+                        </span>
+                    </div>
+                    <div class="cell" data-index="1"><span class="symbol"></span></div>
+                    <div class="cell" data-index="2"><span class="symbol"></span></div>
+                    <div class="cell" data-index="3"><span class="symbol"></span></div>
+                    <div class="cell" data-index="4"><span class="symbol"></span></div>
+                    <div class="cell" data-index="5"><span class="symbol"></span></div>
+                    <div class="cell" data-index="6"><span class="symbol"></span></div>
+                    <div class="cell" data-index="7"><span class="symbol"></span></div>
+                    <div class="cell" data-index="8"><span class="symbol"></span></div>
+                </div>
+
+                <div class="betting-menu" id="bettingMenu" style="display: none;">
+                    <h2>Betting Menu</h2>
+                    <div class="bet-slider-container">
+                        <button id="leftArrow" class="arrow-button"></button>
+                        <div class="bet-slider" id="betSlider">
+                            <div class="bet-numbers"></div>
+                            <div class="bet-selector"></div>
+                        </div>
+                        <button id="rightArrow" class="arrow-button"></button>
+                    </div>
+                    <button id="placeBetButton" class="bet-button">Place Bet</button>
+                    <button id="leaveButton" class="leave-button">Leave</button>
+                    <div id="leaveConfirm" class="leave-confirm">
+                        <p>Are you sure?</p>
+                        <div class="confirm-buttons">
+                            <button id="confirmYes" class="confirm-btn yes">Yes</button>
+                            <button id="confirmNo" class="confirm-btn no">No</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <div id="gameOverModal" class="modal">
@@ -186,6 +259,9 @@
             <h2 id="gameOverMessage"></h2>
             <button id="okButton">Okay</button>
         </div>
+    </div>
+    <div class="mobile-turn-status" style="display: none;">
+        Your turn
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
@@ -197,8 +273,8 @@
 
         // Check login state immediately
         (function() {
-            const token = sessionStorage.getItem('token');
-            const username = sessionStorage.getItem('username');
+            const token = localStorage.getItem('token');
+            const username = localStorage.getItem('username');
             if (token && username) {
                 document.getElementById('loginBtn').style.display = 'none';
                 document.querySelector('.user-section').style.display = 'flex';
