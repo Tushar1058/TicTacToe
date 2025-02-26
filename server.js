@@ -1,8 +1,29 @@
 require('dotenv').config();
 const express = require('express');
+const session = require('express-session');
 const app = express();
+
+// Add session middleware BEFORE creating server and socket.io
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 1000 * 60 * 60 * 24 // 24 hours
+    }
+}));
+
 const server = require('http').createServer(app);
 const io = require('socket.io')(server);
+
+// Socket.IO session handling
+io.engine.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false
+}));
+
 const cors = require('cors');
 const sqlite3 = require('sqlite3');
 const bodyParser = require('body-parser');
@@ -12,7 +33,6 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = 'your-secret-key'; // Use environment variable in production
 const activeConnections = new Map(); // Track unique connections by tabId
 const path = require('path');
-const session = require('express-session');
 
 // Add these at the top with other state tracking
 let waitingPlayers = new Map(); // Track players waiting for a match
@@ -34,64 +54,64 @@ app.use(cors({
     credentials: true
 }));
 
-// Use the Railway volume mount path
+// Use the Railway volume mount path with better error handling
 const dbPath = process.env.RAILWAY_VOLUME_MOUNT_PATH 
     ? path.join(process.env.RAILWAY_VOLUME_MOUNT_PATH, 'database.sqlite')
-    : './users.db';
+    : path.join(__dirname, 'users.db');
+
+console.log('Using database path:', dbPath);
 
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error connecting to SQLite:', err);
+        process.exit(1); // Exit if we can't connect to the database
     } else {
         console.log('Connected to SQLite database at', dbPath);
     }
 });
 
-// Update the database initialization to add wallet_amount column
+// Database initialization with better error handling
 db.serialize(() => {
-    // First create the users table if it doesn't exist
-db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE,
-        email TEXT UNIQUE,
-        password TEXT,
-        wallet_amount INTEGER DEFAULT 1000,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`, (err) => {
-        if (err) {
-            console.error('Table creation error:', err.message);
-        } else {
-            console.log('Users table ready');
-        }
-    });
+    try {
+        // First create the users table if it doesn't exist
+        db.run(`CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            email TEXT UNIQUE,
+            password TEXT,
+            wallet_amount INTEGER DEFAULT 1000,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`, (err) => {
+            if (err) {
+                console.error('Table creation error:', err.message);
+            } else {
+                console.log('Users table ready');
+            }
+        });
 
-    // Then add wallet_amount column if it doesn't exist
-    db.run(`
-        ALTER TABLE users 
-        ADD COLUMN wallet_amount INTEGER DEFAULT 1000;
-    `, (err) => {
-        if (err) {
-            // Column might already exist, which is fine
-            if (!err.message.includes('duplicate column name')) {
+        // Then add wallet_amount column if it doesn't exist
+        db.run(`
+            ALTER TABLE users 
+            ADD COLUMN wallet_amount INTEGER DEFAULT 1000;
+        `, (err) => {
+            if (err && !err.message.includes('duplicate column name')) {
                 console.error('Error adding wallet_amount column:', err.message);
             }
-        } else {
-            console.log('Added wallet_amount column');
-        }
-    });
+        });
 
-    // Update existing users to have default wallet amount if they don't have it
-    db.run(`
-        UPDATE users 
-        SET wallet_amount = 1000 
-        WHERE wallet_amount IS NULL
-    `, (err) => {
-        if (err) {
-            console.error('Error updating existing users:', err.message);
-        } else {
-            console.log('Updated existing users with default wallet amount');
-        }
-    });
+        // Update existing users to have default wallet amount if they don't have it
+        db.run(`
+            UPDATE users 
+            SET wallet_amount = 1000 
+            WHERE wallet_amount IS NULL
+        `, (err) => {
+            if (err) {
+                console.error('Error updating existing users:', err.message);
+            }
+        });
+    } catch (err) {
+        console.error('Database initialization error:', err);
+    }
 });
 
 // Handle signup with password hashing
@@ -1067,20 +1087,26 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
 });
 
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 1000 * 60 * 60 * 24 // 24 hours
-    }
-}));
+// Add graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received. Closing server...');
+    server.close(() => {
+        console.log('Server closed. Closing database...');
+        db.close(() => {
+            console.log('Database closed. Exiting...');
+            process.exit(0);
+        });
+    });
+});
 
-// For Socket.IO, use the same simple configuration
-io.engine.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    resave: false,
-    saveUninitialized: false
-})); 
+process.on('SIGINT', () => {
+    console.log('SIGINT received. Closing server...');
+    server.close(() => {
+        console.log('Server closed. Closing database...');
+        db.close(() => {
+            console.log('Database closed. Exiting...');
+            process.exit(0);
+        });
+    });
+});
 
