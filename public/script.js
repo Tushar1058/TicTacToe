@@ -29,7 +29,9 @@ const socket = io({
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     timeout: 20000,
-    transports: ['websocket', 'polling'] // Add transport options
+    transports: ['websocket', 'polling'],
+    withCredentials: true,
+    forceNew: true
 });
 let gameState = {
     roomId: null,
@@ -391,10 +393,18 @@ socket.on('connect', () => {
     lastConnectTime = currentTime;
 });
 
-socket.on('disconnect', () => {
-    console.log('Disconnected from server');
-    if (localStorage.getItem('token')) {
-        // Attempt to reconnect immediately for logged-in users
+socket.on('connect_error', (error) => {
+    console.error('Connection error:', error);
+    // Attempt to reconnect with polling if websocket fails
+    if (socket.io.opts.transports.indexOf('polling') === -1) {
+        socket.io.opts.transports = ['polling', 'websocket'];
+    }
+});
+
+socket.on('disconnect', (reason) => {
+    console.log('Disconnected:', reason);
+    if (reason === 'io server disconnect') {
+        // Reconnect if server disconnected
         socket.connect();
     }
 });
@@ -1869,4 +1879,29 @@ function showStatusText() {
         statusText.style.display = 'block';
     }
 }
+
+// Add network status detection
+window.addEventListener('online', function() {
+    console.log('Network connection restored');
+    if (!socket.connected) {
+        socket.connect();
+    }
+});
+
+window.addEventListener('offline', function() {
+    console.log('Network connection lost');
+});
+
+// Add reconnection handling
+socket.io.on("reconnect_attempt", () => {
+    console.log('Attempting to reconnect...');
+});
+
+socket.io.on("reconnect", (attempt) => {
+    console.log('Reconnected after ' + attempt + ' attempts');
+});
+
+socket.io.on("reconnect_error", (error) => {
+    console.log('Reconnection error:', error);
+});
 
