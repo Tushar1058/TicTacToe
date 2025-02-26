@@ -17,7 +17,14 @@ app.use(session({
 const server = require('http').createServer(app);
 const io = require('socket.io')(server, {
     pingTimeout: 60000,
-    pingInterval: 25000
+    pingInterval: 25000,
+    cors: {
+        origin: "*", // Allow all origins
+        methods: ["GET", "POST"],
+        credentials: true,
+        allowedHeaders: ['Content-Type', 'Authorization']
+    },
+    transports: ['websocket', 'polling'] // Enable both WebSocket and polling
 });
 
 // Socket.IO session handling
@@ -55,9 +62,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // CORS configuration
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || "*",
+    origin: true, // Allow all origins
     methods: ["GET", "POST"],
-    credentials: true
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Use the Railway volume mount path with better error handling
@@ -1123,6 +1131,7 @@ const PORT = process.env.PORT || 3000;
 try {
     server.listen(PORT, '0.0.0.0', () => {
         console.log(`Server running on port ${PORT}`);
+        console.log(`Server accessible at http://localhost:${PORT}`);
     });
 } catch (error) {
     console.error('Failed to start server:', error);
