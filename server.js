@@ -27,8 +27,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(session({
     store: new SQLiteStore({
-        db: 'sessions.sqlite', // This will create a sessions.sqlite file in your database path
-        dir: process.env.RAILWAY_VOLUME_MOUNT_PATH || '.', // Use the Railway volume mount path if available
+        db: 'sessions.sqlite',
+        dir: process.env.RAILWAY_VOLUME_MOUNT_PATH || '.',
     }),
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
