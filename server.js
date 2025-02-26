@@ -1,5 +1,4 @@
 const express = require('express');
-const cors = require('cors');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
@@ -11,14 +10,27 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = 'your-secret-key'; // Use environment variable in production
 const activeConnections = new Map(); // Track unique connections by tabId
 const path = require('path');
-let lastBroadcastCount = 0;
+const session = require('express-session');
+let lastEmittedCount = 0; // Initialize the variable
 
-// Enable CORS for all routes
-app.use(cors());
+// Add these at the top with other state tracking
+let waitingPlayers = new Map(); // Track players waiting for a match
+let gameRooms = new Map(); // Track active game rooms
+let activeGames = new Set(); // Track active game sessions
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    }
+}));
 
 // Use the Railway volume mount path
 const dbPath = process.env.RAILWAY_VOLUME_MOUNT_PATH 
@@ -36,9 +48,9 @@ const db = new sqlite3.Database(dbPath, (err) => {
 // Update the database initialization to add wallet_amount column
 db.serialize(() => {
     // First create the users table if it doesn't exist
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
+db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE,
         email TEXT UNIQUE,
         password TEXT,
         wallet_amount INTEGER DEFAULT 1000,
@@ -207,29 +219,66 @@ app.post('/reset-password', (req, res) => {
     });
 });
 
-// Add this new endpoint to verify token
-app.post('/verify-token', (req, res) => {
-    const token = req.body.token;
-    if (!token) {
-        return res.status(401).json({ valid: false });
+// Add this function to handle wallet updates
+function broadcastWalletUpdate(username, newBalance) {
+    io.to(username).emit('wallet-update', newBalance);
+}
+
+// Add this function at the top level of server.js
+async function getWalletBalance(username) {
+    return new Promise((resolve, reject) => {
+        db.get(
+            'SELECT wallet_amount FROM users WHERE username = ?',
+            [username],
+            (err, user) => {
+                if (err) {
+                    console.error('Database error:', err);
+                    reject(err);
+                } else if (!user) {
+                    reject(new Error('User not found'));
+                } else {
+                    resolve(user.wallet_amount);
+                }
+            }
+        );
+    });
+}
+
+// Update the connected users tracking
+let connectedUsers = new Map(); // Map to track users and their tabs
+
+// Debounce function to limit the rate of function execution
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+const updateUserCount = debounce(() => {
+    const uniqueLoggedInUsers = new Set();
+    const guestCount = Array.from(connectedUsers.values())
+        .filter(user => !user.isLoggedIn).length;
+    
+    // Count logged-in users only once
+    connectedUsers.forEach(user => {
+        if (user.isLoggedIn) {
+            uniqueLoggedInUsers.add(user.username);
+        }
+    });
+    
+    const totalCount = uniqueLoggedInUsers.size + guestCount;
+    const currentCount = io.sockets.sockets.size; // Get actual connected sockets count
+    
+    // Only emit if there's a real change in unique users
+    if (totalCount !== lastEmittedCount) {
+        lastEmittedCount = totalCount;
+        io.emit('updateUserCount', totalCount);
     }
+}, 100);
 
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        res.json({ 
-            valid: true, 
-            username: decoded.username 
-        });
-    } catch (err) {
-        res.status(401).json({ valid: false });
-    }
-});
-
-const rooms = new Map();
-const playerQueue = [];
-let connectedUsers = 0;
-
-// Function to get the actual connection count
+// Add a function to get actual connection count
 function getActualConnectionCount() {
     const uniqueTabs = new Set();
     
@@ -242,157 +291,562 @@ function getActualConnectionCount() {
 
 // Broadcast count to all clients
 function broadcastCount() {
-    const currentCount = getActualConnectionCount();
-    if (currentCount !== lastBroadcastCount) {
-        lastBroadcastCount = currentCount;
-        io.emit('updateUserCount', currentCount);
+    const totalCount = getActualConnectionCount();
+    if (totalCount !== lastEmittedCount) {
+        lastEmittedCount = totalCount;
+        io.emit('updateUserCount', totalCount);
     }
 }
 
+// Track players who are ready to leave after game end
+const playersReadyToLeave = new Map(); // Change to Map to track by roomId
+
 io.on('connection', (socket) => {
-    const username = socket.handshake.auth.username || 'Guest';
+    const isLoggedIn = socket.handshake.auth.isLoggedIn;
+    const username = socket.handshake.auth.username;
     const tabId = socket.handshake.auth.tabId;
-    
-    // Store connection info
-    activeConnections.set(socket.id, {
-        username,
-        tabId,
-        timestamp: Date.now()
-    });
 
-    console.log(`New connection: ${username} (${socket.id}) - Tab: ${tabId}`);
-    
-    // Broadcast count immediately after new connection
-    broadcastCount();
+    // Remove the initial game check on connection
+    if (isLoggedIn) {
+        const existingConnections = Array.from(connectedUsers.values())
+            .filter(user => user.username === username && user.isLoggedIn);
+            
+        if (existingConnections.length === 0) {
+            // First connection for this logged-in user
+            connectedUsers.set(socket.id, { username, tabId, isLoggedIn });
+        } else {
+            // Additional tab for existing logged-in user
+            connectedUsers.set(socket.id, { username, tabId, isLoggedIn });
+        }
+    } else {
+        // Guest user - count each connection
+        connectedUsers.set(socket.id, { username, tabId, isLoggedIn });
+    }
 
-    // Handle count requests
-    socket.on('requestUserCount', () => {
-        socket.emit('updateUserCount', getActualConnectionCount());
-    });
+    // Update count for all clients
+    updateUserCount();
+    io.emit('updateUserCount', getLiveCount());
 
     socket.on('findGame', () => {
-        // Check if player is already in queue
-        const existingPlayer = playerQueue.find(player => player.id === socket.id);
-        if (existingPlayer) return;
-        
-        console.log('Player searching for game:', socket.id);
-        playerQueue.push({
+        const currentPlayer = {
             id: socket.id,
-            socket: socket
-        });
-        
-        if (playerQueue.length >= 2) {
-            const player1 = playerQueue.shift();
-            const player2 = playerQueue.shift();
+            username: socket.handshake.auth.username,
+            isLoggedIn: socket.handshake.auth.isLoggedIn
+        };
+
+        if (waitingPlayers.size > 0) {
+            const opponentId = waitingPlayers.keys().next().value;
+            const opponent = waitingPlayers.get(opponentId);
+
+            // Check for self-play
+            if (currentPlayer.isLoggedIn && opponent.isLoggedIn && 
+                currentPlayer.username === opponent.username) {
+                socket.emit('selfPlayError', {
+                    message: 'You cannot play against yourself'
+                });
+                return;
+            }
+
             const roomId = `room_${Date.now()}`;
             
-            console.log('Creating room:', roomId);
-            
-            const gameRoom = {
-                players: [player1.id, player2.id],
-                currentTurn: player1.id,
-                board: Array(9).fill(''),
-                gameOver: false
-            };
-            
-            rooms.set(roomId, gameRoom);
-            player1.socket.join(roomId);
-            player2.socket.join(roomId);
-
-            io.to(roomId).emit('gameStart', {
-                roomId,
-                players: {
-                    [player1.id]: 'X',
-                    [player2.id]: 'O'
-                },
-                currentTurn: player1.id
+            // Create room with initial betting phase
+            gameRooms.set(roomId, {
+                players: [
+                    {
+                        id: socket.id,
+                        username: currentPlayer.username,
+                        isLoggedIn: currentPlayer.isLoggedIn,
+                        betPlaced: false,
+                        betAmount: 0
+                    },
+                    {
+                        id: opponentId,
+                        username: opponent.username,
+                        isLoggedIn: opponent.isLoggedIn,
+                        betPlaced: false,
+                        betAmount: 0
+                    }
+                ],
+                board: Array(9).fill(null),
+                currentTurn: null, // Will be set after betting phase
+                gameStarted: false,
+                bettingPhase: true
             });
+
+            // Remove from waiting list
+            waitingPlayers.delete(opponentId);
+            waitingPlayers.delete(socket.id);
+
+            // Notify both players to enter betting phase
+            io.to(socket.id).emit('enterBettingLobby', { roomId });
+            io.to(opponentId).emit('enterBettingLobby', { roomId });
+        } else {
+            waitingPlayers.set(socket.id, currentPlayer);
         }
     });
 
-    socket.on('cancelSearch', () => {
-        const index = playerQueue.findIndex(player => player.id === socket.id);
-        if (index !== -1) {
-            playerQueue.splice(index, 1);
-            socket.emit('searchCancelled');
+    socket.on('makeMove', ({ roomId, index, symbol }) => {
+        const room = gameRooms.get(roomId);
+        if (!room || room.currentTurn !== socket.id || room.board[index] !== null) {
+            return;
         }
-    });
 
-    socket.on('makeMove', ({ roomId, index }) => {
-        const room = rooms.get(roomId);
-        if (!room || room.gameOver) return;
+        // Update the board with the player's symbol
+        room.board[index] = symbol;
+        
+        const winner = checkWinner(room.board);
+        const isDraw = !winner && room.board.every(cell => cell !== null);
 
-        if (room.currentTurn === socket.id && room.board[index] === '') {
-            const symbol = room.players[0] === socket.id ? 'X' : 'O';
-            room.board[index] = symbol;
-            
-            const winner = checkWinner(room.board);
-            const isDraw = !room.board.includes('');
-            
-            if (winner || isDraw) {
-                room.gameOver = true;
-                io.to(roomId).emit('gameOver', {
-                    winner: winner ? symbol : 'draw',
-                    board: room.board
+        if (winner) {
+            const winningPlayer = room.players.find(p => p.symbol === winner);
+            if (winningPlayer && winningPlayer.isLoggedIn) {
+                // Update winner's wallet and emit balance update
+                updateWalletBalance(winningPlayer.username, winningPlayer.betAmount * 2)
+                    .then(newBalance => {
+                        io.to(winningPlayer.id).emit('wallet-update', newBalance);
+                        console.log(`Winner ${winningPlayer.username} received ${winningPlayer.betAmount * 2}. New balance: ${newBalance}`);
+                    })
+                    .catch(err => {
+                        console.error('Failed to process winnings:', err);
+                    });
+            }
+        }
+        
+        if (winner || isDraw) {
+            if (isDraw) {
+                // For draw, reset the board and switch turns
+                room.board = Array(9).fill(null);
+                room.gameStarted = true;
+                room.bettingPhase = false;
+                
+                // Get the current and next players
+                const currentPlayer = room.players.find(p => p.id === room.currentTurn);
+                const nextPlayer = room.players.find(p => p.id !== room.currentTurn);
+                room.currentTurn = nextPlayer.id;  // Switch turns for next round
+                
+                room.players.forEach(player => {
+                    io.to(player.id).emit('gameOver', {
+                        winner: 'draw',
+                        board: room.board,
+                        currentTurn: room.currentTurn,
+                        newRound: true
+                    });
+                });
+
+                // Emit a separate newRound event to ensure turn order is updated
+                room.players.forEach(player => {
+                    io.to(player.id).emit('newRound', {
+                        board: room.board,
+                        currentTurn: room.currentTurn
+                    });
                 });
             } else {
-                room.currentTurn = room.players.find(id => id !== socket.id);
-                io.to(roomId).emit('gameUpdate', {
+                // Handle win/loss case
+                room.gameEnded = true;
+                room.players.forEach(player => {
+                    io.to(player.id).emit('gameOver', {
+                        winner,
+                        board: room.board,
+                        newRound: false
+                    });
+                });
+            }
+        } else {
+            // Regular move - switch turns
+            room.currentTurn = room.players.find(p => p.id !== socket.id).id;
+            
+            room.players.forEach(player => {
+                io.to(player.id).emit('gameUpdate', {
                     board: room.board,
                     currentTurn: room.currentTurn
                 });
-            }
-        }
-    });
+            });
 
-    socket.on('leaveRoom', ({ roomId }) => {
-        socket.leave(roomId);
-        rooms.delete(roomId);
-    });
-
-    socket.on('disconnect', () => {
-        console.log(`Disconnection: ${username} (${socket.id}) - Tab: ${tabId}`);
-        activeConnections.delete(socket.id);
-        broadcastCount();
-
-        // Find and cleanup any rooms this player was in
-        rooms.forEach((room, roomId) => {
-            if (room.players.includes(socket.id)) {
-                // Notify other player
-                socket.to(roomId).emit('playerLeft');
-                // Clean up the room
-                rooms.delete(roomId);
-            }
-        });
-
-        // Also remove from queue if disconnected while searching
-        const queueIndex = playerQueue.findIndex(player => player.id === socket.id);
-        if (queueIndex !== -1) {
-            playerQueue.splice(queueIndex, 1);
+            // Update betting container state based on the current turn
         }
     });
 
     socket.on('startNewRound', ({ roomId }) => {
-        const room = rooms.get(roomId);
+        const room = gameRooms.get(roomId);
         if (!room) return;
+
+        // Reset the board
+        room.board = Array(9).fill(null);
         
-        room.board = Array(9).fill('');
-        room.gameOver = false;
-        room.matchCount++;
-        room.currentTurn = room.players[Math.floor(Math.random() * 2)];
-        
-        io.to(roomId).emit('newRound', {
-            board: room.board,
-            currentTurn: room.currentTurn
+        // Switch who goes first in the new round
+        const currentPlayer = room.players.find(p => p.id === room.currentTurn);
+        const nextPlayer = room.players.find(p => p.id !== room.currentTurn);
+        room.currentTurn = nextPlayer.id;
+
+        // Notify both players of the new round
+        room.players.forEach(player => {
+            io.to(player.id).emit('newRound', {
+                board: room.board,
+                currentTurn: room.currentTurn
+            });
         });
     });
 
-    // Clean up on errors
-    socket.on('error', () => {
-        activeConnections.delete(socket.id);
-        broadcastCount();
+    socket.on('cancelSearch', () => {
+        waitingPlayers.delete(socket.id);
+    });
+
+    socket.on('playerReadyToLeave', ({ roomId }) => {
+        const room = gameRooms.get(roomId);
+        if (!room) return;
+
+        const username = socket.handshake.auth.username;
+        const isLoggedIn = socket.handshake.auth.isLoggedIn;
+        const playerId = isLoggedIn ? username : socket.id;
+
+        // Initialize Set for this room if it doesn't exist
+        if (!playersReadyToLeave.has(roomId)) {
+            playersReadyToLeave.set(roomId, new Set());
+        }
+
+        // Add this player to ready-to-leave set for this room
+        playersReadyToLeave.get(roomId).add(socket.id);
+
+        const currentPlayer = room.players.find(p => {
+            const playerIdentifier = p.isLoggedIn ? p.username : p.id;
+            return playerIdentifier === playerId;
+        });
+
+        if (!currentPlayer) return;
+
+        const otherPlayer = room.players.find(p => p !== currentPlayer);
+        
+        if (otherPlayer) {
+            io.to(otherPlayer.id).emit('opponentReadyToLeave', {
+                message: 'Opponent is ready to leave the game',
+                roomId: roomId
+            });
+        }
+
+        // Check if both players are ready to leave this specific room
+        const readyPlayers = playersReadyToLeave.get(roomId);
+        const allPlayersReady = room.players.every(p => readyPlayers.has(p.id));
+
+        if (allPlayersReady) {
+            // Clean up room
+            activeGames.delete(roomId);
+            gameRooms.delete(roomId);
+            playersReadyToLeave.delete(roomId);
+            
+            // Notify all players to leave
+            room.players.forEach(p => {
+                io.to(p.id).emit('bothPlayersLeft', { roomId });
+                socket.leave(roomId);
+            });
+        }
+    });
+
+    socket.on('leaveRoom', ({ roomId }) => {
+        const room = gameRooms.get(roomId);
+        if (!room) return;
+
+        // If game is ended, use playerReadyToLeave logic instead
+        if (room.gameEnded) {
+            socket.emit('useReadyToLeave', { roomId });
+            return;
+        }
+
+        // For mid-game leaves
+        const otherPlayer = room.players.find(p => p.id !== socket.id);
+        if (otherPlayer) {
+            io.to(otherPlayer.id).emit('opponentLeft', {
+                message: 'Game ended - Opponent left',
+                isGameOver: true
+            });
+        }
+
+        // Clean up room
+        activeGames.delete(roomId);
+        gameRooms.delete(roomId);
+        if (playersReadyToLeave.has(roomId)) {
+            playersReadyToLeave.delete(roomId);
+        }
+        
+        socket.leave(roomId);
+    });
+
+    socket.on('placeBet', async ({ roomId, betAmount }) => {
+        const room = gameRooms.get(roomId);
+        if (!room || !room.bettingPhase) return;
+
+        const player = room.players.find(p => p.id === socket.id);
+        if (!player || player.betPlaced) return;
+
+        if (player.isLoggedIn) {
+            try {
+                const currentBalance = await getWalletBalance(player.username);
+
+                if (currentBalance < betAmount) {
+                    socket.emit('betError', { message: 'Insufficient balance' });
+                    return;
+                }
+
+                player.betAmount = betAmount;
+                player.betPlaced = true;
+
+                room.players.forEach(p => {
+                    io.to(p.id).emit('updateBettingInfo', {
+                        players: room.players.map(player => ({
+                            id: player.id,
+                            username: player.username || 'Guest',
+                            betAmount: player.betAmount || 0,
+                            betPlaced: player.betPlaced
+                        }))
+                    });
+                });
+
+                const opponent = room.players.find(p => p.id !== socket.id);
+                if (opponent) {
+                    io.to(opponent.id).emit('opponentBetPlaced', {
+                        message: 'Opponent placed their bet',
+                        opponentBetAmount: betAmount
+                    });
+                }
+
+                if (room.players.every(p => p.betPlaced)) {
+                    const [player1, player2] = room.players;
+                    if (player1.betAmount !== player2.betAmount) {
+                        room.players.forEach(p => {
+                            io.to(p.id).emit('betError', { message: 'Bets do not match' });
+                        });
+                        return;
+                    }
+
+                    
+                    for (const p of room.players) {
+                        const newBalance = await updateWalletBalance(p.username, -p.betAmount);
+                        io.to(p.id).emit('wallet-update', newBalance);
+                        console.log(`Deducted ${p.betAmount} from ${p.username}'s wallet. New balance: ${newBalance}`);
+                    }
+
+                    room.players.forEach(p => {
+                        io.to(p.id).emit('bothBetsPlaced');
+                    });
+
+                    room.bettingPhase = false;
+                    room.gameStarted = true;
+                    room.currentTurn = room.players[Math.floor(Math.random() * 2)].id;
+
+                    room.players[0].symbol = Math.random() < 0.5 ? 'X' : 'O';
+                    room.players[1].symbol = room.players[0].symbol === 'X' ? 'O' : 'X';
+
+                    const symbols = {
+                        [room.players[0].id]: room.players[0].symbol,
+                        [room.players[1].id]: room.players[1].symbol
+                    };
+
+                    room.players.forEach(p => {
+                        io.to(p.id).emit('gameStart', {
+                            roomId,
+                            players: symbols,
+                            currentTurn: room.currentTurn,
+                            bets: {
+                                [room.players[0].id]: room.players[0].betAmount,
+                                [room.players[1].id]: room.players[1].betAmount
+                            }
+                        });
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to process bet:', err);
+                socket.emit('betError', { message: 'Failed to place bet' });
+            }
+        }
+    });
+
+    socket.on('betMenuLeave', ({ roomId }) => {
+        const room = gameRooms.get(roomId);
+        if (!room) return;
+
+        const otherPlayer = room.players.find(p => p.id !== socket.id);
+        if (otherPlayer) {
+            io.to(otherPlayer.id).emit('opponentLeftLobby', {
+                message: 'Opponent left the lobby',
+                isFromBetMenu: true
+            });
+        }
+
+        // Notify the player who left
+        socket.emit('opponentLeftLobby', {
+            message: 'You left the lobby',
+            isFromBetMenu: true
+        });
+
+        // Clean up room
+        activeGames.delete(roomId);
+        gameRooms.delete(roomId);
+        socket.leave(roomId);
+    });
+
+    socket.on('checkGameStatus', ({ username, isLoggedIn }) => {
+        const isInGame = Array.from(gameRooms.values()).some(room => 
+            room.players.some(p => 
+                (isLoggedIn && p.isLoggedIn && p.username === username) || 
+                (!isLoggedIn && p.id === socket.id)
+            )
+        );
+        
+        socket.emit('gameStatusResponse', { isInGame });
+    });
+
+    socket.on('clearBet', ({ roomId }) => {
+        const room = gameRooms.get(roomId);
+        if (!room || !room.bettingPhase) return;
+
+        const player = room.players.find(p => p.id === socket.id);
+        if (!player) return;
+
+        // Clear player's bet
+        player.betPlaced = false;
+        player.betAmount = 0;
+
+        // Update betting info for all players
+        room.players.forEach(p => {
+            io.to(p.id).emit('updateBettingInfo', {
+                players: room.players.map(player => ({
+                    id: player.id,
+                    username: player.username || 'Guest',
+                    betAmount: player.betAmount || 0,
+                    betPlaced: player.betPlaced
+                }))
+            });
+        });
+
+        // Notify other player about bet clearing
+        const opponent = room.players.find(p => p.id !== socket.id);
+        if (opponent) {
+            io.to(opponent.id).emit('opponentClearedBet', {
+                opponentHasBet: opponent.betPlaced
+            });
+        }
+    });
+
+    socket.on('gameWon', async ({ winner, roomId }) => {
+        const room = gameRooms.get(roomId);
+        if (!room) return;
+        
+        const winningPlayer = room.players.find(p => p.symbol === winner);
+
+        if (winningPlayer && winningPlayer.isLoggedIn) {
+            try {
+                // Calculate winnings (double the bet amount)
+                const winnings = winningPlayer.betAmount * 2;
+                
+                // Update winner's wallet
+                const newBalance = await updateWalletBalance(winningPlayer.username, winnings);
+                
+                // Emit the updated balance to the winner
+                io.to(winningPlayer.id).emit('wallet-update', newBalance);
+                console.log(`Winner ${winningPlayer.username} received ${winnings}. New balance: ${newBalance}`);
+            } catch (err) {
+                console.error('Failed to process winnings:', err);
+            }
+        }
+
+        // Notify both players of game end
+        room.players.forEach(player => {
+            io.to(player.id).emit('gameOver', {
+                winner,
+            board: room.board,
+                roomId
+            });
+        });
+
+        // Mark room as ended
+        room.gameEnded = true;
+    });
+
+    socket.on('disconnect', () => {
+        const user = connectedUsers.get(socket.id);
+        if (user) {
+            // Handle user tracking cleanup
+            if (user.isLoggedIn) {
+                const remainingConnections = Array.from(connectedUsers.values())
+                    .filter(u => u.username === user.username && u.isLoggedIn);
+                
+                if (remainingConnections.length <= 1) {
+                    connectedUsers.delete(socket.id);
+                    updateUserCount();
+                } else {
+                    connectedUsers.delete(socket.id);
+                }
+            } else {
+                connectedUsers.delete(socket.id);
+                updateUserCount();
+            }
+        }
+
+        // Handle game-related disconnection
+        waitingPlayers.delete(socket.id);
+        
+        // Check for active games and handle disconnection
+        for (const [roomId, room] of gameRooms.entries()) {
+            if (room.players.some(p => p.id === socket.id)) {
+                const opponent = room.players.find(p => p.id !== socket.id);
+                const disconnectedPlayer = room.players.find(p => p.id === socket.id);
+                
+                if (opponent) {
+                    let disconnectMessage;
+                    
+                    if (room.gameStarted) {
+                        disconnectMessage = {
+                            message: 'Opponent disconnected from the game!',
+                            inGame: true,
+                            inBettingPhase: false,
+                            roomId
+                        };
+
+                        // Only revert bet amount to the opponent who stayed
+                        if (opponent.isLoggedIn && opponent.betAmount) {
+                            updateWalletBalance(opponent.username, opponent.betAmount)
+                                .then(newBalance => {
+                                    io.to(opponent.id).emit('wallet-update', newBalance);
+                                    console.log(`Reverted ${opponent.betAmount} to ${opponent.username}'s wallet. New balance: ${newBalance}`);
+                                })
+                                .catch(err => {
+                                    console.error('Failed to revert bet amount:', err);
+                                });
+                        }
+
+                        // Log the disconnected player's forfeit
+                        if (disconnectedPlayer.isLoggedIn) {
+                            console.log(`${disconnectedPlayer.username} forfeited their bet of ${disconnectedPlayer.betAmount} by disconnecting`);
+                        }
+                    } else if (room.bettingPhase) {
+                        disconnectMessage = {
+                            message: 'Opponent disconnected during betting phase!',
+                            inGame: false,
+                            inBettingPhase: true,
+                            roomId
+                        };
+                    } else {
+                        disconnectMessage = {
+                            message: 'Opponent disconnected from the lobby!',
+                            inGame: false,
+                            inBettingPhase: false,
+                            roomId
+                        };
+                    }
+                    
+                    io.to(opponent.id).emit('opponentDisconnected', disconnectMessage);
+                }
+                
+                // Clean up the room
+                activeGames.delete(roomId);
+                gameRooms.delete(roomId);
+            }
+        }
     });
 });
+
+function checkDraw(board) {
+    return board.every(cell => cell !== null);
+}
 
 function checkWinner(board) {
     const lines = [
@@ -401,12 +855,13 @@ function checkWinner(board) {
         [0, 4, 8], [2, 4, 6] // Diagonals
     ];
 
-    for (const [a, b, c] of lines) {
+    for (let line of lines) {
+        const [a, b, c] = line;
         if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-            return true;
+            return board[a];
         }
     }
-    return false;
+    return null;
 }
 
 // Endpoint to get wallet amount
@@ -435,44 +890,168 @@ app.get('/wallet-amount', (req, res) => {
     }
 });
 
-// Endpoint to update wallet amount
-app.post('/update-wallet', (req, res) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    const { amount } = req.body;
+// Update the verify-token endpoint
+app.post('/verify-token', async (req, res) => {
+    const { token } = req.body;
+    
+    if (!token) {
+        return res.json({ valid: false });
+    }
 
-    console.log('Received wallet update request:', { amount }); // Add logging
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Get user data including wallet balance
+        db.get(
+            'SELECT username, wallet_amount FROM users WHERE username = ?',
+            [decoded.username],
+            (err, user) => {
+                if (err) {
+                    console.error('Database error:', err);
+                    return res.json({ valid: false });
+                }
+
+                if (!user) {
+                    return res.json({ valid: false });
+                }
+
+                // Send back user data including wallet balance
+                res.json({
+                    valid: true,
+                    username: user.username,
+                    wallet_amount: user.wallet_amount
+                });
+
+                // Also emit wallet update through socket
+                io.to(user.username).emit('wallet-update', user.wallet_amount);
+            }
+        );
+    } catch (err) {
+        console.error('Token verification failed:', err);
+        res.json({ valid: false });
+    }
+});
+
+// Update the wallet update endpoint
+app.post('/update-wallet', async (req, res) => {
+    const { username, amount } = req.body;
+    const token = req.headers.authorization?.split(' ')[1];
 
     if (!token) {
-        console.log('No token provided');
         return res.status(401).json({ error: 'No token provided' });
     }
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        console.log('Updating wallet for user:', decoded.username);
+        
+        if (decoded.username !== username) {
+            return res.status(401).json({ error: 'Unauthorized access' });
+        }
 
-        db.run('UPDATE users SET wallet_amount = ? WHERE username = ?',
-            [amount, decoded.username],
-            function(err) { // Use function to access this.changes
+        if (amount < 0) {
+            const currentBalance = await getWalletBalance(username);
+            if (currentBalance + amount < 0) {
+                return res.status(400).json({ error: 'Insufficient balance' });
+            }
+        }
+
+        db.run(
+            'UPDATE users SET wallet_amount = wallet_amount + ? WHERE username = ?',
+            [amount, username],
+            async function(err) {
                 if (err) {
                     console.error('Database error:', err);
                     return res.status(500).json({ error: 'Database error' });
                 }
-                
-                if (this.changes > 0) {
-                    console.log('Wallet updated successfully');
-                    res.json({ success: true, amount });
-                } else {
-                    console.log('No rows updated');
-                    res.status(404).json({ error: 'User not found' });
+
+                try {
+                    const newBalance = await getWalletBalance(username);
+                    io.to(username).emit('wallet-update', newBalance);
+                    res.json({ success: true, balance: newBalance });
+                } catch (err) {
+                    console.error('Error fetching updated wallet balance:', err);
+                    res.status(500).json({ error: 'Error fetching balance' });
                 }
             }
         );
     } catch (err) {
-        console.error('Token verification error:', err);
+        console.error('Token verification failed:', err);
         res.status(401).json({ error: 'Invalid token' });
     }
 });
+
+// Add this function to get accurate live count
+function getLiveCount() {
+    const uniqueUsers = new Set();
+    
+    for (const user of connectedUsers.values()) {
+        if (user.isLoggedIn) {
+            uniqueUsers.add(user.username);
+        } else {
+            uniqueUsers.add(user.tabId);
+        }
+    }
+    
+    return uniqueUsers.size;
+}
+
+// Function to update wallet balance
+async function updateWalletBalance(username, amount) {
+    return new Promise((resolve, reject) => {
+        db.serialize(() => {
+            db.run('BEGIN TRANSACTION', (err) => {
+                if (err) {
+                    console.error('Error starting transaction:', err);
+                    reject(err);
+                    return;
+                }
+
+                db.run(
+                    'UPDATE users SET wallet_amount = wallet_amount + ? WHERE username = ?',
+                    [amount, username],
+                    function(err) {
+                        if (err) {
+                            db.run('ROLLBACK', (rollbackErr) => {
+                                if (rollbackErr) {
+                                    console.error('Error during rollback:', rollbackErr);
+                                }
+                                console.error('Error updating wallet balance:', err);
+                                reject(err);
+                            });
+                            return;
+                        }
+
+                        db.get(
+                            'SELECT wallet_amount FROM users WHERE username = ?',
+                            [username],
+                            (err, row) => {
+                                if (err) {
+                                    db.run('ROLLBACK', (rollbackErr) => {
+                                        if (rollbackErr) {
+                                            console.error('Error during rollback:', rollbackErr);
+                                        }
+                                        console.error('Error getting updated balance:', err);
+                                        reject(err);
+                                    });
+                                    return;
+                                }
+
+                                db.run('COMMIT', (commitErr) => {
+                                    if (commitErr) {
+                                        console.error('Error during commit:', commitErr);
+                                        reject(commitErr);
+                                        return;
+                                    }
+                                    resolve(row.wallet_amount);
+                                });
+                            }
+                        );
+                    }
+                );
+            });
+        });
+    });
+}
 
 // Start the server
 const PORT = process.env.PORT || 3000;
