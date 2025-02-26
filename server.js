@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const session = require('express-session');
 const app = express();
 const server = require('http').createServer(app);
 const io = require('socket.io')(server);
@@ -13,48 +12,26 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = 'your-secret-key'; // Use environment variable in production
 const activeConnections = new Map(); // Track unique connections by tabId
 const path = require('path');
-const SQLiteStore = require('connect-sqlite3')(session);
-let lastEmittedCount = 0; // Initialize the variable
+const session = require('express-session');
 
 // Add these at the top with other state tracking
 let waitingPlayers = new Map(); // Track players waiting for a match
 let gameRooms = new Map(); // Track active game rooms
 let activeGames = new Set(); // Track active game sessions
 
+// Add these near the top with other state variables
+let lastEmittedCount = 0;
+let connectedUsers = new Map();
+
 app.use(express.static('public'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-app.use(session({
-    store: new SQLiteStore({
-        db: 'sessions.sqlite',
-        dir: process.env.RAILWAY_VOLUME_MOUNT_PATH || '.',
-    }),
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 1000 * 60 * 60 * 24 // 24 hours
-    }
-}));
 
 // CORS configuration
 app.use(cors({
     origin: process.env.CORS_ORIGIN || "*",
     methods: ["GET", "POST"],
     credentials: true
-}));
-
-// Socket.IO configuration
-io.engine.use(session({
-    store: new SQLiteStore({
-        db: 'sessions.sqlite',
-        dir: process.env.RAILWAY_VOLUME_MOUNT_PATH || '.',
-    }),
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    resave: false,
-    saveUninitialized: false
 }));
 
 // Use the Railway volume mount path
@@ -267,60 +244,6 @@ async function getWalletBalance(username) {
             }
         );
     });
-}
-
-// Update the connected users tracking
-let connectedUsers = new Map(); // Map to track users and their tabs
-
-// Debounce function to limit the rate of function execution
-function debounce(func, wait) {
-    let timeout;
-    return function(...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-    };
-}
-
-const updateUserCount = debounce(() => {
-    const uniqueLoggedInUsers = new Set();
-    const guestCount = Array.from(connectedUsers.values())
-        .filter(user => !user.isLoggedIn).length;
-    
-    // Count logged-in users only once
-    connectedUsers.forEach(user => {
-        if (user.isLoggedIn) {
-            uniqueLoggedInUsers.add(user.username);
-        }
-    });
-    
-    const totalCount = uniqueLoggedInUsers.size + guestCount;
-    const currentCount = io.sockets.sockets.size; // Get actual connected sockets count
-    
-    // Only emit if there's a real change in unique users
-    if (totalCount !== lastEmittedCount) {
-        lastEmittedCount = totalCount;
-        io.emit('updateUserCount', totalCount);
-    }
-}, 100);
-
-// Add a function to get actual connection count
-function getActualConnectionCount() {
-    const uniqueTabs = new Set();
-    
-    for (const [_, conn] of activeConnections.entries()) {
-        uniqueTabs.add(conn.tabId);
-    }
-    
-    return uniqueTabs.size;
-}
-
-// Broadcast count to all clients
-function broadcastCount() {
-    const totalCount = getActualConnectionCount();
-    if (totalCount !== lastEmittedCount) {
-        lastEmittedCount = totalCount;
-        io.emit('updateUserCount', totalCount);
-    }
 }
 
 // Track players who are ready to leave after game end
@@ -1005,7 +928,57 @@ app.post('/update-wallet', async (req, res) => {
     }
 });
 
-// Add this function to get accurate live count
+// Update the debounce function and updateUserCount
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+const updateUserCount = debounce(() => {
+    const uniqueLoggedInUsers = new Set();
+    const guestCount = Array.from(connectedUsers.values())
+        .filter(user => !user.isLoggedIn).length;
+    
+    // Count logged-in users only once
+    connectedUsers.forEach(user => {
+        if (user.isLoggedIn) {
+            uniqueLoggedInUsers.add(user.username);
+        }
+    });
+    
+    const totalCount = uniqueLoggedInUsers.size + guestCount;
+    
+    // Only emit if there's a real change in unique users
+    if (totalCount !== lastEmittedCount) {
+        lastEmittedCount = totalCount;
+        io.emit('updateUserCount', totalCount);
+    }
+}, 100);
+
+// Add a function to get actual connection count
+function getActualConnectionCount() {
+    const uniqueTabs = new Set();
+    
+    for (const [_, conn] of activeConnections.entries()) {
+        uniqueTabs.add(conn.tabId);
+    }
+    
+    return uniqueTabs.size;
+}
+
+// Broadcast count to all clients
+function broadcastCount() {
+    const totalCount = getActualConnectionCount();
+    if (totalCount !== lastEmittedCount) {
+        lastEmittedCount = totalCount;
+        io.emit('updateUserCount', totalCount);
+    }
+}
+
+// Function to get accurate live count
 function getLiveCount() {
     const uniqueUsers = new Set();
     
@@ -1092,6 +1065,22 @@ io.on('connect_error', (error) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
-}); 
+});
 
- 
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 1000 * 60 * 60 * 24 // 24 hours
+    }
+}));
+
+// For Socket.IO, use the same simple configuration
+io.engine.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false
+})); 
+
