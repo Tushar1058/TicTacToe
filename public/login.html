@@ -328,9 +328,9 @@
             })
             .then(data => {
                 if (data.message === 'Login successful') {
-                    // Store username and token in sessionStorage instead of localStorage
-                    sessionStorage.setItem('username', data.username);
-                    sessionStorage.setItem('token', data.token);
+                    // Store in localStorage instead of sessionStorage
+                    localStorage.setItem('username', data.username);
+                    localStorage.setItem('token', data.token);
                     if (!data.isNewUser) {
                         document.getElementById('welcomeBack').textContent = `Welcome back, ${data.username}!`;
                         document.getElementById('welcomeBack').style.display = 'block';
