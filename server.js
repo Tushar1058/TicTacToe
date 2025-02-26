@@ -1,7 +1,15 @@
 const express = require('express');
 const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const server = require('http').createServer(app);
+const io = require('socket.io')(server, {
+    cors: {
+        origin: "*", // Be more specific in production
+        methods: ["GET", "POST"]
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    transports: ['websocket', 'polling']
+});
 const sqlite3 = require('sqlite3');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
@@ -1053,9 +1061,19 @@ async function updateWalletBalance(username, amount) {
     });
 }
 
-// Start the server
+// Add error handling for the server
+server.on('error', (error) => {
+    console.error('Server error:', error);
+});
+
+// Add connection error handling
+io.on('connect_error', (error) => {
+    console.error('Socket connection error:', error);
+});
+
+// Update the port configuration
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
 }); 
 
