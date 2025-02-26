@@ -48,6 +48,7 @@ body {
     -webkit-user-select: none;
     user-select: none;
     outline: none;
+    transition: none; /* Remove any transition that might cause shifting */
 }
 
 h1 {
@@ -55,6 +56,7 @@ h1 {
     margin-bottom: 30px;
     color: var(--primary);
     text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+    transition: none; /* Ensure no transition affects the position */
 }
 
 .board {
@@ -64,7 +66,7 @@ h1 {
     margin: 20px auto;
     width: 400px;
     height: 400px;
-    padding: 20px;
+    padding: 10px;
     position: relative;
     background: transparent;
     -webkit-tap-highlight-color: transparent;
@@ -98,7 +100,7 @@ h1 {
 }
 
 .vertical-line {
-    width: 4px;
+    width: 8px;
     height: 0;
     top: 10px;
     bottom: 10px;
@@ -106,7 +108,7 @@ h1 {
 }
 
 .horizontal-line {
-    height: 4px;
+    height: 8px;
     width: 0;
     left: 10px;
     right: 10px;
@@ -120,8 +122,8 @@ h1 {
 
 
 .cell {
-    width: 100px;
-    height: 100px;
+    width: 120px;
+    height: 120px;
     background: transparent !important; /* Force transparent background */
     border: none;
     display: flex;
@@ -164,11 +166,93 @@ h1 {
     opacity: 0;
     transform: scale(0);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-    pointer-events: none; /* Prevent symbol from being selectable */
+    position: relative;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* X symbol styles */
+.symbol[data-symbol="X"]::before,
+.symbol[data-symbol="X"]::after {
+    content: '';
+    position: absolute;
+    width: 84px; /* Increased width for proper diagonal */
+    height: 8px;
+    background: var(--x-color);
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+}
+
+.symbol[data-symbol="X"]::before {
+    top: 2px;
+    left: 2px;
+    transform-origin: top left;
+    transform: rotate(45deg) scaleX(0);
+}
+
+.symbol[data-symbol="X"]::after {
+    top: 2px;
+    right: 2px;
+    transform-origin: top right;
+    transform: rotate(-45deg) scaleX(0);
+}
+
+.symbol[data-symbol="X"].show::before {
+    animation: drawXLineLeft 0.25s ease forwards;
+    opacity: 1;
+}
+
+.symbol[data-symbol="X"].show::after {
+    animation: drawXLineRight 0.25s ease forwards 0.25s;
+    opacity: 1;
+}
+
+/* O symbol styles */
+.symbol[data-symbol="O"] {
+    position: relative;
+    width: 60px;
+    height: 60px;
+}
+
+.symbol[data-symbol="O"]::before {
+    content: '';
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border: 8px solid transparent;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(68, 68, 255, 0.5);
+    transform-origin: 50% 50%;
+    transform: rotate(-90deg);
+    border-top: 8px solid var(--o-color);
+    animation: drawO 0.8s ease-out forwards;
+}
+
+@keyframes drawO {
+    0% {
+        border-color: transparent;
+        border-top: 8px solid var(--o-color);
+        transform: rotate(-90deg);
+    }
+    25% {
+        border-right: 8px solid var(--o-color);
+        transform: rotate(0deg);
+    }
+    50% {
+        border-bottom: 8px solid var(--o-color);
+        transform: rotate(90deg);
+    }
+    75% {
+        border-left: 8px solid var(--o-color);
+        transform: rotate(180deg);
+    }
+    100% {
+        border: 8px solid var(--o-color);
+        transform: rotate(270deg);
+    }
 }
 
 .symbol.show {
@@ -176,14 +260,23 @@ h1 {
     transform: scale(1);
 }
 
-.symbol.show[data-symbol="X"] {
-    color: var(--x-color);
-    text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+/* Updated keyframes */
+@keyframes drawXLineLeft {
+    from {
+        transform: rotate(45deg) scaleX(0);
+    }
+    to {
+        transform: rotate(45deg) scaleX(1);
+    }
 }
 
-.symbol.show[data-symbol="O"] {
-    color: var(--o-color);
-    text-shadow: 0 0 10px rgba(68, 68, 255, 0.5);
+@keyframes drawXLineRight {
+    from {
+        transform: rotate(-45deg) scaleX(0);
+    }
+    to {
+        transform: rotate(-45deg) scaleX(1);
+    }
 }
 
 .glow-button {
@@ -194,7 +287,7 @@ h1 {
     background: transparent;
     color: var(--primary);
     border: 2px solid var(--primary);
-    border-radius: 50px;
+    border-radius: 15px;
     transition: all 0.3s ease;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -204,6 +297,7 @@ h1 {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+    transition: none; /* Remove transition to prevent shifting */
 }
 
 .glow-button:hover {
@@ -239,6 +333,7 @@ h1 {
     -webkit-user-select: none;
     user-select: none;
     outline: none;
+    transition: none; /* Remove transition to prevent shifting */
 }
 
 .modal {
@@ -316,7 +411,6 @@ h1 {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
-    outline: none;
 }
 
 #okButton:hover {
@@ -346,20 +440,20 @@ h1 {
 /* Base live count styles (for PC/desktop) */
 .live-player-count {
     position: fixed;
-    top: 85px;
-    left: 20px;
-    padding: 8px 16px;
-    border-radius: 15px;
-    color: var(--primary);
-    font-size: 1em;
-    border: 1px solid var(--primary);
+    top: 80px;
+    left: 20px; /* Position in the top left corner */
     z-index: 999;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(5px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    display: flex;
-    align-items: center;
-    gap: 5px;
+    background: rgba(45, 45, 45, 0.8);
+    padding: 8px 12px; /* Smaller padding for smaller size */
+    border-radius: 5px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    color: var(--text);
+    font-size: 1em; /* Smaller font size */
+    transition: left 0.5s ease; /* Animation for shifting */
+}
+
+.live-player-count.shifted {
+    left: 320px; /* Adjusted for wider betting menu */
 }
 
 .number {
@@ -430,7 +524,7 @@ h1 {
     display: flex;
     align-items: center;
     background: var(--background);
-    border: 2px solid var(--primary);
+    border: 2px solid white;
     border-radius: 6px;
     padding: 3px;
     gap: 6px;
@@ -477,14 +571,15 @@ h1 {
     position: absolute;
     top: 60px;
     right: 0;
-    background: rgba(20, 20, 20, 0.1);
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
+    background: rgba(20, 20, 20, 0.75);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
     min-width: 280px;
     z-index: 1000;
+    height: 260px;
     user-select: none;
 }
 
@@ -506,8 +601,6 @@ h1 {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     cursor: move;
     border-radius: 16px 16px 0 0;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
 }
 
 .close-btn {
@@ -526,7 +619,11 @@ h1 {
 }
 
 .wallet-section {
-    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    position: relative;
+    padding-bottom: 40px; /* Add space for notification */
 }
 
 .wallet-action {
@@ -665,23 +762,23 @@ h1 {
 .user-section {
     display: flex;
     align-items: center;
-    gap: 8px;
-    max-width: 150px;
+    gap: 4px;
+    max-width: none;
     position: absolute;
     right: 15px;
     top: 15px; /* Adjusted to be slightly lower */
 }
+
 .username-display {
-    color: var(--primary);
+    color: white;
     font-weight: 600;
     font-size: 0.85em;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 80px;
+    margin-right: 8px;
 }
 
 .profile-icon {
+    
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -716,486 +813,7 @@ h1 {
     box-shadow: 0 0 10px #00ff88, 0 0 20px #00ff88;
 }
 
-/* Mobile styles */
-@media screen and (max-width: 768px) {
-    .user-section {
-        max-width: 120px;
-        right: 10px;
-        top: 13px; /* Adjusted for smaller screens */
-    }
 
-    .username-display {
-        font-size: 0.8em;
-        max-width: 70px;
-    }
-
-    .user-btn {
-        width: 34px;
-        height: 34px;
-        font-size: 0.9em;
-    }
-
-    .user-menu {
-        top: 55px;
-        right: 10px;
-        min-width: 130px;
-    }
-
-    .wallet-menu {
-        position: fixed;
-        top: 70px;  /* Reduced from 80px */
-        left: 50%;
-        transform: translateX(-50%) !important;
-        width: 90%;
-        max-width: 350px;
-        cursor: default;
-        background: rgba(20, 20, 20, 0.85);
-        backdrop-filter: blur(40px);
-        -webkit-backdrop-filter: blur(40px);
-        margin: 0;
-    }
-}
-
-/* Small mobile screens */
-@media screen and (max-width: 480px) {
-    .user-section {
-        max-width: 100px;
-        right: 8px;
-        top: 11px; /* Further adjusted for smaller screens */
-    }
-
-    .username-display {
-        font-size: 0.75em;
-        max-width: 60px;
-    }
-
-    .user-btn {
-        width: 32px;
-        height: 32px;
-        font-size: 0.85em;
-    }
-
-    .user-menu {
-        right: 8px;
-        min-width: 120px;
-    }
-
-    .wallet-menu {
-        top: 65px;  /* Reduced from 75px */
-        width: 95%;
-        max-width: 320px;
-    }
-}
-
-/* Very small screens */
-@media screen and (max-width: 360px) {
-    .user-section {
-        max-width: 90px;
-        right: 6px;
-        top: 10px; /* Further adjusted for very small screens */
-    }
-
-    .username-display {
-        font-size: 0.7em;
-        max-width: 50px;
-    }
-
-    .user-btn {
-        width: 30px;
-        height: 30px;
-        font-size: 0.8em;
-    }
-
-    .user-menu {
-        right: 6px;
-        min-width: 110px;
-    }
-
-    .wallet-menu {
-        top: 60px;  /* Reduced from 70px */
-        width: 98%;
-        max-width: 300px;
-    }
-}
-
-/* Base styles remain the same, adding responsive styles */
-@media screen and (max-width: 768px) {
-    .container {
-        padding: 10px;
-        width: 100%;
-        min-height: calc(100vh - 64px);
-    }
-
-    h1 {
-        font-size: 2.2em;
-        margin-bottom: 20px;
-    }
-
-    .board {
-        width: 300px;
-        height: 300px;
-        padding: 15px;
-        margin: 15px auto;
-    }
-
-    .cell {
-        width: 80px;
-        height: 80px;
-        font-size: 3em;
-        margin: 3px;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    .live-player-count {
-        top: 85px;
-        left: 15px;
-        font-size: 1em;
-        padding: 8px 16px;
-    }
-
-    .wallet-info {
-        height: 45px;
-    }
-
-    .wallet-display {
-        padding: 3px 8px;
-        font-size: 0.8em;
-    }
-
-    .wallet-btn {
-        width: 30px;
-        height: 30px;
-        font-size: 0.9em;
-    }
-
-    #findGame {
-        padding: 10px 25px;
-        font-size: 1.1em;
-        margin: 15px;
-    }
-
-    #status {
-        font-size: 1.3em;
-        margin: 15px;
-    }
-
-    .match-stats {
-        font-size: 1.3em;
-    }
-
-    .match-stats span {
-        padding: 6px 15px;
-    }
-
-    .modal-content {
-        width: 90%;
-        max-width: 320px;
-        padding: 25px;
-    }
-
-    #gameOverMessage {
-        font-size: 1.4em;
-    }
-
-    #okButton {
-        padding: 12px 25px;
-        font-size: 1.3em;
-        margin-top: 25px;
-    }
-
-    .site-header {
-        height: 64px;
-        min-height: 64px;
-        padding: 0 12px;
-    }
-
-    body {
-        padding-top: 64px;
-    }
-
-    .wallet-display {
-        padding: 6px 12px;
-        font-size: 0.9em;
-    }
-
-    .wallet-btn {
-        width: 34px;
-        height: 34px;
-        font-size: 0.9em;
-    }
-
-    .left-section {
-        min-width: 120px; /* Reduced from 200px */
-    }
-
-    .right-section {
-        min-width: 120px; /* Reduced from 200px */
-    }
-
-    .logo-text {
-        font-size: 1.2em;
-    }
-
-    .user-section {
-        max-width: 150px; /* Reduced from 200px */
-        gap: 8px;
-    }
-
-    .username-display {
-        font-size: 0.9em;
-        max-width: 100px; /* Reduced from 150px */
-    }
-
-    .user-btn,
-    .wallet-btn {
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    .user-action,
-    .wallet-action {
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    .live-player-count {
-        top: 85px;
-        left: 15px;
-        font-size: 1em;
-        padding: 8px 16px;
-    }
-
-    .wallet-header {
-        cursor: default;
-        justify-content: space-between;
-        background: rgba(255, 255, 255, 0.15);
-    }
-
-    .wallet-section {
-        padding: 16px;
-    }
-
-    .input-wrapper {
-        width: 100%;
-    }
-
-    .wallet-buttons {
-        flex-direction: column;
-        gap: 12px;
-        padding: 0 10px;
-    }
-
-    .wallet-buttons button {
-        width: 100%;
-        padding: 14px;
-        font-size: 1em;
-    }
-}
-
-@media screen and (max-width: 480px) {
-    .board {
-        width: 320px;
-        height: 320px;
-        padding: 10px;
-    }
-
-    .cell {
-        width: 95px;
-        height: 95px;
-        font-size: 3.2em;
-    }
-
-    h1 {
-        font-size: 2em;
-    }
-
-    .board-line {
-        border-radius: 10px;
-    }
-
-    .vertical-line {
-        width: 3px;
-    }
-
-    .horizontal-line {
-        height: 3px;
-    }
-
-    #findGame {
-        width: fit-content;
-        margin: 20px auto;
-        display: block;
-    }
-
-    .site-header {
-        padding: 0 8px;
-    }
-
-    .wallet-display {
-        padding: 4px 8px;
-        font-size: 0.8em;
-    }
-
-    .wallet-btn {
-        width: 38px;
-        height: 38px;
-        font-size: 1em;
-    }
-
-    .live-player-count {
-        top: 80px;
-        left: 12px;
-        font-size: 0.95em;
-        padding: 7px 14px;
-    }
-
-    .left-section {
-        min-width: 100px;
-    }
-
-    .right-section {
-        min-width: 100px;
-    }
-
-    .logo-text {
-        font-size: 1.1em;
-    }
-
-    .wallet-display {
-        padding: 4px 8px;
-        font-size: 0.8em;
-    }
-
-    .wallet-btn {
-        width: 30px;
-        height: 30px;
-        font-size: 0.8em;
-    }
-
-    .user-section {
-        max-width: 120px;
-        gap: 6px;
-    }
-
-    .username-display {
-        font-size: 0.8em;
-        max-width: 80px;
-    }
-
-    .user-btn,
-    .wallet-btn {
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    .user-action,
-    .wallet-action {
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    .live-player-count {
-        top: 80px;
-        left: 12px;
-        font-size: 0.95em;
-        padding: 7px 14px;
-    }
-
-    .wallet-menu {
-        position: fixed;
-        top: 70px;  /* Reduced from 80px */
-        left: 50%;
-        transform: translateX(-50%) !important;
-        width: 90%;
-        max-width: 350px;
-        cursor: default;
-        background: rgba(20, 20, 20, 0.85);
-        backdrop-filter: blur(40px);
-        -webkit-backdrop-filter: blur(40px);
-        margin: 0;
-    }
-
-    .wallet-header {
-        cursor: default;
-        justify-content: space-between;
-        background: rgba(255, 255, 255, 0.15);
-    }
-
-    .wallet-section {
-        padding: 16px;
-    }
-
-    .input-wrapper {
-        width: 100%;
-    }
-
-    .wallet-buttons {
-        flex-direction: column;
-        gap: 12px;
-        padding: 0 10px;
-    }
-
-    .wallet-buttons button {
-        width: 100%;
-        padding: 14px;
-        font-size: 1em;
-    }
-
-    .wallet-notification {
-        font-size: 0.85em;
-        padding: 8px;
-    }
-}
-
-/* Add very small screen adjustments */
-@media screen and (max-width: 360px) {
-    .logo-text {
-        display: none; /* Hide logo text on very small screens */
-    }
-
-    .left-section {
-        min-width: 80px;
-    }
-
-    .right-section {
-        min-width: 80px;
-    }
-
-    .user-section {
-        max-width: 100px;
-    }
-
-    .username-display {
-        max-width: 60px;
-    }
-
-    .wallet-display {
-        padding: 3px 6px;
-        font-size: 0.75em;
-    }
-
-    .live-player-count {
-        top: 75px;
-        left: 8px;
-        font-size: 0.9em;
-        padding: 6px 12px;
-    }
-
-    .wallet-menu {
-        top: 60px;  /* Reduced from 70px */
-        width: 98%;
-        max-width: 300px;
-    }
-
-    .wallet-header {
-        padding: 10px;
-    }
-
-    .wallet-section {
-        padding: 10px;
-    }
-
-    .wallet-buttons button {
-        padding: 10px;
-        font-size: 0.9em;
-    }
-}
 
 /* Add to prevent any text selection in the game area */
 .container, 
@@ -1257,7 +875,9 @@ h1 {
 }
 
 .wallet-notification {
-    margin-top: 10px;
+    width: calc(100% - 24px);
+    margin-top: -15px;
+    margin-left: 12px;
     padding: 8px 12px;
     border-radius: 6px;
     font-size: 0.9em;
@@ -1265,18 +885,23 @@ h1 {
     opacity: 0;
     transition: opacity 0.3s ease;
     word-wrap: break-word;
-}
-
-.wallet-notification.success {
-    background: rgba(0, 255, 136, 0.1);
-    color: var(--primary);
-    border: 1px solid rgba(0, 255, 136, 0.2);
+    position: relative; /* Change to relative */
+    bottom: 0;
+    left: 0;
+    transform: none;
+    z-index: 1000;
 }
 
 .wallet-notification.error {
     background: rgba(255, 68, 68, 0.1);
     color: #ff4444;
     border: 1px solid rgba(255, 68, 68, 0.2);
+}
+
+.wallet-notification.success {
+    background: rgba(0, 168, 255, 0.1);
+    color: var(--primary);
+    border: 1px solid var(--primary);
 }
 
 .wallet-notification.show {
@@ -1289,7 +914,7 @@ h1 {
 
 .user-btn {
     background: transparent;
-    border: 2px solid var(--primary);
+    border: 2px solid white;
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -1297,7 +922,7 @@ h1 {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: var(--primary);
+    color: white;
     transition: all 0.3s ease;
     font-size: 1.1em;
     -webkit-tap-highlight-color: transparent;
@@ -1307,7 +932,7 @@ h1 {
 }
 
 .user-btn:hover {
-    background: var(--primary);
+    background: white;
     color: var(--background);
     box-shadow: 0 0 10px var(--primary);
 }
@@ -1318,7 +943,7 @@ h1 {
     top: 50px;
     right: 0;
     background: var(--modal-bg);
-    border: 1px solid var(--primary);
+    border: 1px solid white;
     border-radius: 8px;
     min-width: 150px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
@@ -1347,7 +972,8 @@ h1 {
 }
 
 .user-action:hover {
-    background: var(--primary);
+    border-radius: 6px;
+    background: rgb(185, 185, 185);
     color: var(--background);
 }
 
@@ -1380,4 +1006,976 @@ h1 {
     line-height: 1.2em;
 }
 
+/* Desktop styles (default) */
+.betting-menu {
+    position: fixed;
+    top: 72px;
+    left: -300px;
+    width: 300px;
+    height: calc(100% - 72px);
+    background: rgba(35, 35, 35, 0.95);
+    padding: 30px;
+    border-radius: 0 15px 15px 0;
+    border-right: 2px solid rgba(0, 255, 136, 0.3);
+    z-index: 1000;
+    color: var(--text);
+    display: none;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    transition: left 0.5s ease-in-out;
+    backdrop-filter: blur(10px);
+}
+
+.betting-menu.show {
+    left: 0;
+}
+
+/* When hiding, move back to the left */
+.betting-menu:not(.show) {
+    left: -300px;
+}
+
+.betting-menu h2 {
+    font-size: 1.8em;
+    margin-bottom: 25px;
+    color: var(--primary);
+    
+    width: 100%;
+    text-align: center;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+}
+
+.betting-menu input {
+    width: 90%;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    font-size: 1.1em;
+    transition: all 0.3s ease;
+}
+
+.betting-menu input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.bet-button, .leave-button {
+    width: 90%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.bet-button {
+    background: linear-gradient(135deg, #ffcc00, #ffa500);
+    color: #1a1a1a;
+    border: none;
+}
+
+.bet-button:hover {
+    background: linear-gradient(135deg, #ffd700, #ffb700);
+    box-shadow: 0 0 20px rgba(255, 204, 0, 0.4);
+    transform: translateY(-2px);
+}
+
+.leave-button {
+    background: linear-gradient(135deg, #ff4444, #cc0000);
+    color: #ffffff;
+    border: none;
+}
+
+.leave-button:hover {
+    background: linear-gradient(135deg, #ff5555, #dd0000);
+    box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
+    transform: translateY(-2px);
+}
+
+.leave-confirm {
+    width: 90%;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    margin-top: -10px;
+}
+
+.leave-confirm.show {
+    max-height: 100px;
+}
+
+.leave-confirm p {
+    color: #ff4444;
+    margin: 10px 0;
+    font-weight: bold;
+}
+
+.confirm-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.confirm-btn {
+    flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.confirm-btn.yes {
+    background: linear-gradient(135deg, #ff4444, #cc0000);
+    color: white;
+}
+
+.confirm-btn.no {
+    background: linear-gradient(135deg, #44ff44, #00cc00);
+    color: white;
+}
+
+.confirm-btn:hover {
+    transform: translateY(-2px);
+}
+
+.confirm-btn.yes:hover {
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
+}
+
+.confirm-btn.no:hover {
+    box-shadow: 0 0 15px rgba(68, 255, 68, 0.4);
+}
+
+.bet-slider-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0;
+    height: 80px;
+    position: relative;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.bet-slider {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    touch-action: pan-x;
+    user-select: none;
+}
+
+.bet-numbers {
+    display: flex;
+    transition: transform 0.3s ease;
+    will-change: transform;
+    position: absolute;
+    left: 0;
+}
+
+.bet-number {
+    width: 80px;
+    height: 40px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    color: #666;
+    transition: all 0.15s ease;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.bet-number.selected {
+    font-size: 1.6em;
+    color: white;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.bet-selector {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 50px;
+    border-left: 2px solid rgba(255, 255, 255, 0.2);
+    border-right: 2px solid rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+}
+
+.arrow-button {
+    background: none;
+    border: none;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding: 0;
+    transition: all 0.3s ease;
+    z-index: 2;
+    margin: 0;
+}
+
+.arrow-button::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    border-top: 2px solid #666;
+    border-right: 2px solid #666;
+    border-radius: 2px;
+    transition: border-color 0.3s ease;
+}
+
+.arrow-button#leftArrow::before {
+    transform: rotate(-135deg);
+    margin-left: 4px;
+}
+
+.arrow-button#rightArrow::before {
+    transform: rotate(45deg);
+    margin-right: 4px;
+}
+
+.arrow-button:hover::before {
+    border-color: #fff;
+}
+
+.betting-info {
+    position: fixed;
+    right: 0;
+    top: 72px;
+    width: 300px;
+    z-index: 1000;
+    transform: translateX(100%);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.betting-info.show {
+    transform: translateX(0);
+}
+
+.betting-info-header {
+    background: rgba(0, 255, 136, 0.1);
+    padding: 15px;
+    border-radius: 15px 0 0 0;
+    border-bottom: 2px solid var(--primary);
+}
+
+.betting-info-header h3 {
+    color: var(--primary);
+    font-size: 1.4em;
+    margin: 0;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.player-bets {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
+}
+
+.player-bet-container {
+    background: rgba(35, 35, 35, 0.95);
+    border: 2px solid rgba(0, 255, 136, 0.3);
+    border-radius: 15px 0 0 15px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: right;
+    width: 100%;
+}
+
+.player-bet-container.active {
+    transform: scale(1.05);
+    border-color: var(--primary);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+}
+
+.player-bet-container.inactive {
+    transform: scale(0.95);
+    opacity: 0.8;
+}
+
+.player-label {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: 12px;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.player-bet {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.player-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.player-name {
+    font-size: 1.1em;
+    color: #fff;
+    font-weight: 500;
+}
+
+.player-status {
+    font-size: 0.9em;
+    color: rgba(0, 255, 136, 0.7);
+    font-style: italic;
+}
+
+.bet-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.bet-label {
+    font-size: 0.9em;
+    color: #888;
+}
+
+.bet-amount {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.vs-divider {
+    text-align: center;
+    color: var(--primary);
+    font-size: 1.2em;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin: 5px 0;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+}
+
+.bet-error-message {
+    color: #ff4444;
+    font-size: 0.9em;
+    margin-top: 10px;
+    padding: 12px;
+    background: rgba(255, 68, 68, 0.1);
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid rgba(255, 68, 68, 0.3);
+}
+
+.bet-button:disabled,
+.leave-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.bet-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 150px;
+    height: 100%;
+    padding: 0 8px;
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.bet-display .currency {
+    margin-right: 12px;
+}
+
+.bet-display .amount {
+    font-weight: 500;
+}
+
+.bet-number {
+    min-width: 80px;
+    text-align: center;
+}
+
+/* Add these styles for the fullscreen button */
+.fullscreen-btn {
+    background: transparent;
+    border: 2px solid white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    transition: all 0.3s ease;
+    font-size: 1.1em;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.fullscreen-btn:hover {
+    background: white;
+    color: var(--background);
+    box-shadow: 0 0 10px var(--primary);
+}
+
+
+.fullscreen-btn.active {
+    background: white;
+    color: var(--background);
+}
+
+.fullscreen-btn.active i {
+    transform: scale(0.8);
+}
+
+/* Mobile styles */
+@media screen and (max-width: 768px) {
+    .login-button {
+        position: fixed;
+        left: 10px;
+        top: 15px;
+        margin: 0;
+        padding: 8px 15px;
+        font-size: 0.9em;
+        border-radius: 6px;
+        z-index: 999;
+    }
+
+    /* Smaller modal content for mobile */
+    .modal-content {
+        background-color: var(--modal-bg);
+        width: 75%;
+        max-width: 200px;
+        min-height: 100px;
+        padding: 15px;
+        border-radius: 12px;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        border: 1px solid var(--primary);
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .modal-content h2 {
+        font-size: 1.1em;
+        margin: 0;
+        color: white;
+    }
+
+    .modal-content #okButton {
+        width: 100px;
+        height: 35px;
+        margin: 5px auto 0;
+        font-size: 0.9em;
+        border-radius: 6px;
+    }
+
+    /* Hide the stake table heading in mobile */
+    .betting-info-header , .vs-divider {
+        display: none;
+    } 
+
+    /* Adjust betting info container for mobile */
+    .betting-info {
+        position: fixed;
+        top: -100px; /* Start above viewport */
+        left: 0;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 20px 10px;
+        z-index: 998;
+        transform: translateY(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .betting-info.show {
+        transform: translateY(165px); /* Move down below header */
+    }
+
+    /* When hiding, move back up */
+    .betting-info:not(.show) {
+        transform: translateY(-100%);
+    }
+
+    /* Adjust player bets container */
+    .player-bets {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        width: 100%;
+        padding: 0 10px;
+        gap: 18px;
+    }
+
+    .player-bet-container {
+        width: 50%; /* Slightly less than half to ensure gap */
+        padding: 5px 10px;
+        padding-bottom: 15px;
+        border: 2px solid var(--primary);
+        border-radius: 8px;
+        background: #222222;
+        backdrop-filter: blur(10px);
+    }
+
+    .player-label {
+        color: var(--primary);
+        font-size: 1em;
+        margin-bottom: 3px;
+        text-align: center;
+    }
+    .player-info,.bet-info
+    {
+        height: 35px;
+    }
+
+    .player-info {
+        padding: 10px 10px; /* Reduced padding */
+    }
+    .bet-info
+    {
+        padding: 10px 10px; /* Reduced padding */
+    }
+
+    .player-name {
+        font-size: 0.85em;
+    }
+
+    .bet-label {
+        font-size: 0.75em;
+        color: #888;
+        padding: 0;
+    }
+
+    
+
+    .player-status {
+        font-size: 0.6em;
+        color: var(--primary);
+        opacity: 0.8;
+    }
+
+    .bet-amount {
+        font-size: 0.9em;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .bet-amount::before {
+        content: none;
+    }
+
+    /* Style for the opponent's container when "Placing Bet..." */
+    .player-bet-container.opponent .player-status {
+        color: #ffc107;
+    }
+
+    /* Game status */
+    .status-text {
+        position: relative;
+        text-align: center;
+        color: white;
+        font-size: 1em;
+        margin: 15px 0;
+        padding: 10px;
+    }
+
+    /* Status text position when in betting room */
+    .betting-menu.show ~ .status-text,
+    .betting-info.show ~ .status-text {
+        position: fixed;
+        top: 35%;
+        left: 50%;
+        transform: translateX(-55%);
+        width:100%;
+        margin: 0;
+        z-index: 997;
+        font-size: 1em!important;
+
+    }
+
+    .modal-content
+    {
+        height: 150px;
+        width: 300px;
+        font-size: 0.7em;
+    }
+    /* Board container */
+    .game-board-section {
+        margin-top: 50%;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+    }
+
+    #board {
+        width: 300px;
+        height: 300px;
+        position: relative;
+    }
+
+   /* Update these styles within the mobile media query section */
+.betting-menu {
+    position: absolute;
+    top: 60%;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 90%;
+    margin: 0 auto;
+    height: 50vh;
+    border-radius: 20px 20px 0 0;
+    border-right: none;
+    border-top: 2px solid rgba(0, 255, 136, 0.3);
+    padding: 20px;
+    transform: translateY(100%) translateX(0);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 999;
+    background: #222222;
+    display: none;
+}
+
+.betting-menu.show {
+    transform: translateY(0) translateX(0);
+}
+
+/* When hiding, move back down only */
+.betting-menu:not(.show) {
+    margin-left: 82%;
+    transform: translateY(100%) translateX(0);
+}
+
+.betting-menu h2 {
+    color: var(--primary);
+    font-size: 1em;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.bet-slider-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin: 15px 0;
+    padding: 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    width: 100%;
+    height: 60px; /* Reduced height */
+    overflow: hidden;
+}
+
+.bet-slider {
+    width: 200px; /* Reduced width */
+    min-width: 160px;
+    overflow: hidden;
+}
+
+.arrow-button {
+    width: 25px; /* Smaller arrows */
+    height: 25px;
+    flex-shrink: 0;
+    padding: 0;
+    margin: 0 3px;
+}
+
+.arrow-button::before {
+    width: 8px; /* Smaller arrow icon */
+    height: 8px;
+    border-width: 2px;
+}
+
+.bet-numbers {
+    display: flex;
+    transition: transform 0.3s ease;
+}
+
+.bet-number {
+    min-width: 60px; /* Smaller number width */
+    height: 30px; /* Smaller height */
+    font-size: 1em; /* Smaller font */
+}
+
+.bet-number.selected {
+    font-size: 1.3em; /* Smaller selected font */
+}
+
+.bet-selector {
+    width: 60px; /* Match bet-number width */
+    height: 40px;
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#placeBetButton {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    background: #ffc107;
+    color: black;
+    font-weight: bold;
+    font-size: 1em;
+    margin: 10px 0;
+}
+
+#leaveButton {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    background: #dc3545;
+    color: white;
+    font-weight: bold;
+    font-size: 1em;
+    margin: 10px 0;
+}
+
+.leave-confirm {
+    width: 100%;
+    height: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    overflow: hidden;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.leave-confirm.show {
+    height: auto;
+    padding: 10px;
+    opacity: 1;
+}
+
+.leave-confirm p {
+    text-align: center;
+    font-size: 0.9em;
+    margin: 0;
+}
+
+.confirm-buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+}
+
+.confirm-btn {
+    flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+}
+
+.confirm-btn.yes {
+    background: #dc3545;
+    color: white;
+}
+
+.confirm-btn.no {
+    background: #28a745;
+    color: white;
+}
+
+/* Fix cell sizes for mobile */
+.cell {
+    width: 90px;
+    height: 90px;
+    margin: -1px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.symbol
+{
+    margin-left: 5px;
+}
+
+.match-stats
+{
+    position: absolute;
+    top: 90%;
+    left: 37%;
+}
+
+/* Adjust symbol sizes */
+.symbol[data-symbol="X"]::before,
+.symbol[data-symbol="X"]::after {
+    width: 64px;
+    height: 6px;
+    top: 6px;
+    margin-left: 3px;
+    right: 12px;
+}
+
+.symbol[data-symbol="O"]::before {
+    width: 45px;
+    height: 45px;
+    border-width: 6px;
+}
+
+/* Live player count for mobile */
+.live-player-count {
+    position: fixed;
+    top: 85px;
+     /* Changed from left to right */
+    left: 10px; /* Reset left position */
+    z-index: 999;
+    background: rgba(45, 45, 45, 0.8);
+    padding: 6px 10px;
+    border-radius: 5px;
+    font-size: 0.85em;
+    transition: all 0.3s ease;
+}
+
+.live-player-count.shifted {
+    top: 230px; /* Move down when betting info shows */
+    left: 10px;
+    opacity: 0.8;
+    transition: all 0.3s ease;
+}
+
+.game-active .live-player-count {
+    top: 80px;
+    transition: all 0.3s ease;
+}
+    .fullscreen-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 1em;
+        position: fixed;
+        top: 80px;
+        right: 10px;
+        z-index: 999;
+    }   
+
+    /* Hide default status text when game is active */
+    .game-active .status-text {
+        display: none;
+    }
+
+    /* New mobile turn status display */
+    .mobile-turn-status {
+        display: none;
+        position: fixed;
+        width: 90%;
+        text-align: center;
+        color: white;
+        font-size: 0.9em;
+        padding: 12px 15px;
+        margin: 0;
+        z-index: 997;
+        background: #222222;
+        border: 2px solid var(--primary);
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .game-active .mobile-turn-status {
+        display: block;
+    }
+
+    .wallet-menu {
+        position: absolute;
+        margin-top: 150px;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+        height: 260px;
+
+    }
+
+    .wallet-header {
+        cursor: default;
+        justify-content: space-between;
+        background: rgba(255, 255, 255, 0.194);
+    }
+
+    .wallet-section {
+        padding: 0px;
+    }
+
+    .input-wrapper {
+        width: 100%;
+    }
+
+    .wallet-buttons {
+        position: relative;
+        top: 70%;
+        font-size: 0.8em;
+        margin-left: -120px;
+        height: 40px;
+        width: 60%;
+        flex-direction: row;
+        gap: 12px;
+        padding: 0 10px;
+    }
+
+    .wallet-buttons button {
+        width: 100%;
+        padding: 14px;
+        font-size: 1em;
+    }
+}
 
