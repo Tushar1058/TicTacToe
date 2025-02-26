@@ -1,15 +1,10 @@
+require('dotenv').config();
 const express = require('express');
+const session = require('express-session');
 const app = express();
 const server = require('http').createServer(app);
-const io = require('socket.io')(server, {
-    cors: {
-        origin: "*", // Be more specific in production
-        methods: ["GET", "POST"]
-    },
-    pingTimeout: 60000,
-    pingInterval: 25000,
-    transports: ['websocket', 'polling']
-});
+const io = require('socket.io')(server);
+const cors = require('cors');
 const sqlite3 = require('sqlite3');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
@@ -18,7 +13,7 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = 'your-secret-key'; // Use environment variable in production
 const activeConnections = new Map(); // Track unique connections by tabId
 const path = require('path');
-const session = require('express-session');
+const SQLiteStore = require('connect-sqlite3')(session);
 let lastEmittedCount = 0; // Initialize the variable
 
 // Add these at the top with other state tracking
@@ -31,13 +26,35 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(session({
+    store: new SQLiteStore({
+        db: 'sessions.sqlite', // This will create a sessions.sqlite file in your database path
+        dir: process.env.RAILWAY_VOLUME_MOUNT_PATH || '.', // Use the Railway volume mount path if available
+    }),
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: {
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        maxAge: 1000 * 60 * 60 * 24 // 24 hours
     }
+}));
+
+// CORS configuration
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || "*",
+    methods: ["GET", "POST"],
+    credentials: true
+}));
+
+// Socket.IO configuration
+io.engine.use(session({
+    store: new SQLiteStore({
+        db: 'sessions.sqlite',
+        dir: process.env.RAILWAY_VOLUME_MOUNT_PATH || '.',
+    }),
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false
 }));
 
 // Use the Railway volume mount path
