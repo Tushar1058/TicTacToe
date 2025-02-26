@@ -24,10 +24,12 @@ const socket = io({
         tabId: tabId,
         isLoggedIn: !!localStorage.getItem('token')
     },
-    reconnectionDelay: 100,
-    reconnectionDelayMax: 1000,
-    reconnectionAttempts: 10,
-    timeout: 3000
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    timeout: 20000,
+    transports: ['websocket', 'polling'] // Add transport options
 });
 let gameState = {
     roomId: null,
@@ -1819,7 +1821,7 @@ const style = document.createElement('style');
 style.textContent = `
 .mobile-turn-indicator {
     position: absolute;
-    top: 34%;
+    top: 300px;
     height: 55px;
     background: rgba(34, 34, 34, 0);
     border: 1px solid var(--primary);
