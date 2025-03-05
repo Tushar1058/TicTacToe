@@ -1085,58 +1085,64 @@ async function updateWalletBalance(username, amount) {
     });
 }
 
-// Graceful shutdown handling
+// Add at the top of server.js
+process.on('SIGTERM', () => {
+  console.info('SIGTERM signal received. Performing graceful shutdown...');
+  gracefulShutdown();
+});
+
+process.on('SIGINT', () => {
+  console.info('SIGINT signal received. Performing graceful shutdown...');
+  gracefulShutdown();
+});
+
+// Update the gracefulShutdown function
 function gracefulShutdown() {
     if (isShuttingDown) return;
     isShuttingDown = true;
     
-    console.log('Received shutdown signal. Starting graceful shutdown...');
+    console.log('Starting graceful shutdown...');
     
-    // Stop accepting new connections
+    // Set a timeout for force shutdown
+    const forceShutdown = setTimeout(() => {
+        console.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+    }, 10000); // Reduced from 30s to 10s
+    
+    // Close server
     server.close(() => {
         console.log('Server closed. Closing database...');
         
-        // Close database connection
-        db.close((err) => {
-            if (err) {
-                console.error('Error closing database:', err);
-                process.exit(1);
-            }
-            console.log('Database connection closed.');
-            process.exit(0);
+        // Close all socket connections
+        io.close(() => {
+            console.log('Socket.IO connections closed');
+            
+            // Close database connection
+            db.close((err) => {
+                clearTimeout(forceShutdown);
+                if (err) {
+                    console.error('Error closing database:', err);
+                    process.exit(1);
+                }
+                console.log('Database connection closed');
+                process.exit(0);
+            });
         });
     });
-
-    // Force shutdown after 30 seconds
-    setTimeout(() => {
-        console.error('Could not close connections in time, forcefully shutting down');
-        process.exit(1);
-    }, 30000);
 }
 
-// Process handlers
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception:', err);
-    gracefulShutdown();
-});
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    gracefulShutdown();
-});
-
-// Update the server start
+// Update the server start configuration
 const PORT = process.env.PORT || 3000;
-try {
-    server.listen(PORT, '0.0.0.0', () => {
-        console.log(`Server running on port ${PORT}`);
-        console.log(`Server accessible at http://localhost:${PORT}`);
-    });
-} catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
-}
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+    
+    // Log memory usage
+    const used = process.memoryUsage();
+    console.log('Memory usage:');
+    for (let key in used) {
+        console.log(`${key}: ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
+    }
+});
 
 // Socket.IO error handling
 io.on('connect_error', (error) => {
