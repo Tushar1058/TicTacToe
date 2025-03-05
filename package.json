@@ -6,7 +6,7 @@
     "node": "18.x"
   },
   "scripts": {
-    "start": "node --optimize-for-size --max-old-space-size=460 server.js",
+    "start": "node --optimize-for-size --max-old-space-size=256 --gc-interval=100 server.js",
     "dev": "nodemon server.js"
   },
   "dependencies": {
