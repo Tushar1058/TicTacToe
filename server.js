@@ -1103,33 +1103,51 @@ function gracefulShutdown() {
     
     console.log('Starting graceful shutdown...');
     
-    // Set a timeout for force shutdown
-    const forceShutdown = setTimeout(() => {
-        console.error('Could not close connections in time, forcefully shutting down');
-        process.exit(1);
-    }, 10000); // Reduced from 30s to 10s
-    
-    // Close server
-    server.close(() => {
-        console.log('Server closed. Closing database...');
-        
-        // Close all socket connections
+    // Close all active connections first
+    if (io) {
+        console.log('Closing socket connections...');
         io.close(() => {
-            console.log('Socket.IO connections closed');
-            
-            // Close database connection
-            db.close((err) => {
-                clearTimeout(forceShutdown);
-                if (err) {
-                    console.error('Error closing database:', err);
-                    process.exit(1);
-                }
-                console.log('Database connection closed');
-                process.exit(0);
-            });
+            console.log('Socket connections closed');
         });
-    });
+    }
+
+    // Close database connections
+    if (db) {
+        console.log('Closing database connection...');
+        db.close((err) => {
+            if (err) {
+                console.error('Error closing database:', err);
+            } else {
+                console.log('Database connection closed');
+            }
+        });
+    }
+
+    // Set a timeout for force shutdown
+    setTimeout(() => {
+        console.log('Forcing process exit after timeout');
+        process.exit(1);
+    }, 5000);
+
+    // Close HTTP server
+    if (server) {
+        server.close(() => {
+            console.log('HTTP server closed');
+            process.exit(0);
+        });
+    } else {
+        process.exit(0);
+    }
 }
+
+// Add memory monitoring
+setInterval(() => {
+    const used = process.memoryUsage();
+    console.log('Memory usage:');
+    for (let key in used) {
+        console.log(`${key}: ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
+    }
+}, 30000);
 
 // Update the server start configuration
 const PORT = process.env.PORT || 3000;
